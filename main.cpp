@@ -1,18 +1,20 @@
-
-
-
-
 #include <iostream>
 #include <bitset>
 #include <array>
 #include <iomanip>
 #include <vector>
+#include <strings.h>
+#include <algorithm>
 
 typedef std::bitset<64> Bitboard;
+typedef std::bitset<6> BoardInd;
 constexpr size_t g_rankSize = 8, g_fileSize = 8;
 constexpr size_t g_boardSize = g_rankSize * g_fileSize;
 template <size_t I> using MagicTable = std::array<std::array<Bitboard, I>, g_boardSize>;
 
+enum class Color {
+    WHITE, BLACK
+};
 enum Square {
     A8, B8, C8, D8, E8, F8, G8, H8,
     A7, B7, C7, D7, E7, F7, G7, H7,
@@ -43,9 +45,9 @@ enum FileRank {
     FILE_G = 6, RANK_7 = 6,
     FILE_H = 7, RANK_8 = 7
 };
-std::ostream& operator<< (std::ostream &os, const PieceType &t_pieceType)
+std::ostream& operator<< (std::ostream &os, const PieceType &pieceType)
 {
-    switch (t_pieceType) {
+    switch (pieceType) {
         case PieceType::WHITE_PAWN: os << "wp"; break;
         case PieceType::WHITE_KNIGHT: os << "WN"; break;
         case PieceType::WHITE_BISHOP: os << "WB"; break;
@@ -64,23 +66,53 @@ std::ostream& operator<< (std::ostream &os, const PieceType &t_pieceType)
     return os;
 }
 
-void displayBitboard(const Bitboard &t_bitboard)
+class BitOps {
+private:
+    constexpr static const int index64[64] = {
+             0,  1, 48,  2, 57, 49, 28,  3,
+            61, 58, 50, 42, 38, 29, 17,  4,
+            62, 55, 59, 36, 53, 51, 43, 22,
+            45, 39, 33, 30, 24, 18, 12,  5,
+            63, 47, 56, 27, 60, 41, 37, 16,
+            54, 35, 52, 21, 44, 32, 23, 11,
+            46, 26, 40, 15, 34, 20, 31, 10,
+            25, 14, 19,  9, 13,  8,  7,  6
+    };
+    constexpr static const uint64_t debruijn64 = 0x03f79d71b4cb0a89;
+public:
+    static constexpr uint64_t ZERO = 0ULL;
+    static constexpr uint64_t ONE = 1ULL;
+
+    /**
+     * @param bb bitboard to scan
+     * @precondition bb != 0
+     * @return index (0..63) of least significant one bit
+     */
+    static size_t findFirstBit(const Bitboard &bb)
+    {
+        auto ull = bb.to_ullong();
+        assert (ull != 0);
+        return index64[((ull & -ull) * debruijn64) >> 58U];
+    }
+};
+
+void displayBitboard(const Bitboard &bitboard)
 {
-//    for (size_t i = t_bitboard.size(); i > 0; --i) {
+//    for (size_t i = bitboard.size(); i > 0; --i) {
 //        if (!(i % 8))
 //            std::cout << "\n";
-//        std::cout << t_bitboard[i - 1] << " ";
+//        std::cout << bitboard[i - 1] << " ";
 //    }
 //    std::cout << "\n";
-    for (size_t i = 0; i < t_bitboard.size(); ++i) {
+    for (size_t i = 0; i < bitboard.size(); ++i) {
         if (!(i % 8))
             std::cout << "\n";
-        std::cout << t_bitboard[i] << " ";
+        std::cout << bitboard[i] << " ";
     }
     std::cout << "\n";
 }
 
-const Bitboard rookMagics[g_boardSize] = {
+const uint64_t rookMagics[g_boardSize] = {
         0xa8002c000108020, 0x6c00049b0002001, 0x100200010090040, 0x2480041000800801, 0x280028004000800,
         0x900410008040022, 0x280020001001080, 0x2880002041000080, 0xa000800080400034, 0x4808020004000,
         0x2290802004801000, 0x411000d00100020, 0x402800800040080, 0xb000401004208, 0x2409000100040200,
@@ -96,7 +128,7 @@ const Bitboard rookMagics[g_boardSize] = {
         0x489a000810200402, 0x1004400080a13, 0x4000011008020084, 0x26002114058042
 };
 
-const Bitboard bishopMagics[g_boardSize] = {
+const uint64_t bishopMagics[g_boardSize] = {
         0x89a1121896040240, 0x2004844802002010, 0x2068080051921000, 0x62880a0220200808, 0x4042004000000,
         0x100822020200011, 0xc00444222012000a, 0x28808801216001, 0x400492088408100, 0x201c401040c0084,
         0x840800910a0010, 0x82080240060, 0x2000840504006000, 0x30010c4108405004, 0x1008005410080802,
@@ -138,14 +170,14 @@ public:
     Bitboard whiteRooks     {"0000000000000000000000000000000000000000000000000000000010000001"};
     Bitboard whiteKnights   {"0000000000000000000000000000000000000000000000000000000001000010"};
     Bitboard whiteBishops   {"0000000000000000000000000000000000000000000000000000000000100100"};
-    Bitboard whiteQueens    {"0000000000000000000000000000000000000000000000000000000000010000"};
-    Bitboard whiteKing      {"0000000000000000000000000000000000000000000000000000000000001000"};
+    Bitboard whiteQueens    {"0000000000000000000000000000000000000000000000000000000000001000"};
+    Bitboard whiteKing      {"0000000000000000000000000000000000000000000000000000000000010000"};
     Bitboard blackPawns     {"0000000011111111000000000000000000000000000000000000000000000000"};
     Bitboard blackRooks     {"1000000100000000000000000000000000000000000000000000000000000000"};
     Bitboard blackKnights   {"0100001000000000000000000000000000000000000000000000000000000000"};
     Bitboard blackBishops   {"0010010000000000000000000000000000000000000000000000000000000000"};
-    Bitboard blackQueens    {"0001000000000000000000000000000000000000000000000000000000000000"};
-    Bitboard blackKing      {"0000100000000000000000000000000000000000000000000000000000000000"};
+    Bitboard blackQueens    {"0000100000000000000000000000000000000000000000000000000000000000"};
+    Bitboard blackKing      {"0001000000000000000000000000000000000000000000000000000000000000"};
 
     Bitboard allWhitePieces;
     Bitboard allBlackPieces;
@@ -183,8 +215,8 @@ public:
 
         for (size_t i = g_rankSize; i > 0; --i) {
             std::cout << "\n" << i << "  ";
-            for (size_t k = g_fileSize; k > 0; --k) {
-                std::cout << std::left << std::setw(5) << board[(i - 1) * g_fileSize + (k - 1)] << " ";
+            for (size_t k = 0; k < g_fileSize; ++k) {
+                std::cout << std::left << std::setw(5) << board[(i - 1) * g_fileSize + k] << " ";
             }
         }
         std::cout << "\n";
@@ -199,7 +231,7 @@ namespace LookupTables {
     std::array<Bitboard, g_boardSize> north, south, west, east, northWest, northEast, southWest, southEast;
     std::array<Bitboard, g_boardSize> rookMasks, bishopMasks;
 
-    namespace Attacks {
+    namespace NonSlidingAttacks {
         std::array<Bitboard, g_boardSize> knightAttacks, kingAttacks;
         std::array<Bitboard, g_boardSize> whitePawnAttacks, blackPawnAttacks;
 
@@ -229,89 +261,118 @@ namespace LookupTables {
                 knightAttacks[i] = square1 | square2 | square3 | square4 | square5 | square6 | square7 | square8;
             }
         }
-    }
+        void initKingAttacks()
+        {
+            for (size_t i = 0; i < g_boardSize; ++i) {
+                Bitboard loc; loc.set(i);
+                Bitboard kingClippedFileH = loc & LookupTables::clearFile[FILE_H];
+                Bitboard kingClippedFileA = loc & LookupTables::clearFile[FILE_A];
+                Bitboard square1 = kingClippedFileH >> 7;
+                Bitboard square2 = kingClippedFileH << 9;
+                Bitboard square3 = kingClippedFileH << 1;
+                Bitboard square4 = kingClippedFileA << 7;
+                Bitboard square5 = kingClippedFileA >> 9;
+                Bitboard square6 = kingClippedFileA >> 1;
+                Bitboard square7 = loc << 8;
+                Bitboard square8 = loc >> 8;
 
-    namespace MagicBB {
+                kingAttacks[i] = square1 | square2 | square3 | square4 | square5 | square6 | square7 | square8;
+            }
+        }
+        void initPawnAttacks()
+        {
+            for (size_t i = 0; i < g_boardSize; ++i) {
+                Bitboard loc; loc.set(i);
+                Bitboard whiteNorthWest = (loc & LookupTables::clearFile[FILE_A]) << 7;
+                Bitboard whiteNorthEast = (loc & LookupTables::clearFile[FILE_H]) << 9;
+                Bitboard blackSouthWest = (loc & LookupTables::clearFile[FILE_A]) >> 7;
+                Bitboard blackSouthEast = (loc & LookupTables::clearFile[FILE_H]) >> 9;
+                whitePawnAttacks[i] = whiteNorthWest | whiteNorthEast;
+                blackPawnAttacks[i] = blackSouthWest | blackSouthEast;
+            }
+        }
+    }
+    namespace SlidingAttacks {
         MagicTable<4096> rookMagicTable;
         MagicTable<1024> bishopMagicTable;
 
-        Bitboard setRookPossibleAttacks(const size_t &t_square, const Bitboard &t_occupancy) {
+        Bitboard setRookPossibleAttacks(const size_t &square, const Bitboard &occupancy) {
             Bitboard possibleAttacks{0};
 
-            int pieceRank = static_cast<int>(t_square / g_rankSize), pieceFile = static_cast<int>(t_square %
-                                                                                                  g_fileSize);
+            int pieceRank = static_cast<int>(square / g_rankSize), pieceFile = static_cast<int>(square %
+                                                                                                g_fileSize);
 
             for (int rank = pieceRank - 1; rank >= RANK_1; --rank) {
                 const size_t actualSq = rank * 8 + pieceFile;
                 possibleAttacks |= Bitboard{}.set(actualSq);
-                if (t_occupancy.test(actualSq)) break;
+                if (occupancy.test(actualSq)) break;
             }
 
             for (int rank = pieceRank + 1; rank <= RANK_8; ++rank) {
                 const size_t actualSq = rank * 8 + pieceFile;
                 possibleAttacks |= Bitboard{}.set(actualSq);
-                if (t_occupancy.test(actualSq)) break;
+                if (occupancy.test(actualSq)) break;
             }
 
             for (int file = pieceFile - 1; file >= FILE_A; --file) {
                 const size_t actualSq = pieceRank * 8 + file;
                 possibleAttacks |= Bitboard{}.set(actualSq);
-                if (t_occupancy.test(actualSq)) break;
+                if (occupancy.test(actualSq)) break;
             }
 
             for (int file = pieceFile + 1; file <= FILE_H; ++file) {
                 const size_t actualSq = pieceRank * 8 + file;
                 possibleAttacks |= Bitboard{}.set(actualSq);
-                if (t_occupancy.test(actualSq)) break;
+                if (occupancy.test(actualSq)) break;
             }
 
             return possibleAttacks;
         }
-        Bitboard setBishopPossibleAttacks(const size_t &t_square, const Bitboard &t_occupancy) {
+        Bitboard setBishopPossibleAttacks(const size_t &square, const Bitboard &occupancy) {
             Bitboard possibleAttacks{0};
 
-            int pieceRank = static_cast<int>(t_square / g_rankSize), pieceFile = static_cast<int>(t_square %
-                                                                                                  g_fileSize);
+            int pieceRank = static_cast<int>(square / g_rankSize), pieceFile = static_cast<int>(square %
+                                                                                                g_fileSize);
 
             for (int rank = pieceRank - 1, file = pieceFile - 1; rank >= RANK_1 && file >= FILE_A; --rank, --file) {
                 const size_t actualSq = rank * 8 + file;
                 possibleAttacks |= Bitboard{}.set(actualSq);
-                if (t_occupancy.test(actualSq)) break;
+                if (occupancy.test(actualSq)) break;
             }
 
             for (int rank = pieceRank - 1, file = pieceFile + 1; rank >= RANK_1 && file <= FILE_H; --rank, ++file) {
                 const size_t actualSq = rank * 8 + file;
                 possibleAttacks |= Bitboard{}.set(actualSq);
-                if (t_occupancy.test(actualSq)) break;
+                if (occupancy.test(actualSq)) break;
             }
 
             for (int rank = pieceRank + 1, file = pieceFile - 1; rank <= RANK_8 && file >= FILE_A; ++rank, --file) {
                 const size_t actualSq = rank * 8 + file;
                 possibleAttacks |= Bitboard{}.set(actualSq);
-                if (t_occupancy.test(actualSq)) break;
+                if (occupancy.test(actualSq)) break;
             }
 
             for (int rank = pieceRank + 1, file = pieceFile + 1; rank <= RANK_8 && file <= FILE_H; ++rank, ++file) {
                 const size_t actualSq = rank * 8 + file;
                 possibleAttacks |= Bitboard{}.set(actualSq);
-                if (t_occupancy.test(actualSq)) break;
+                if (occupancy.test(actualSq)) break;
             }
 
             return possibleAttacks;
         }
-        Bitboard setOccupancy(const size_t &t_square, const size_t &t_count, const std::vector<size_t> &t_setBitsIndexes) {
-            Bitboard occupancy{0}, variation{t_count};
+        Bitboard setOccupancy(const size_t &square, const size_t &count, const std::vector<size_t> &setBitsIndexes) {
+            Bitboard occupancy{0}, variation{count};
 
-            for (size_t i = 0; i < t_setBitsIndexes.size(); ++i) {
-                occupancy[t_setBitsIndexes[i]] = variation[i];
+            for (size_t i = 0; i < setBitsIndexes.size(); ++i) {
+                occupancy[setBitsIndexes[i]] = variation[i];
             }
 
             return occupancy;
         }
-        auto setSetBitsIndexes(const Bitboard &t_bb) {
+        auto setSetBitsIndexes(const Bitboard &bb) {
             std::vector<size_t> setBitsIndexes;
             for (size_t i = 0; i < g_boardSize; ++i) {
-                if (t_bb.test(i)) setBitsIndexes.push_back(i);
+                if (bb.test(i)) setBitsIndexes.push_back(i);
             }
             return setBitsIndexes;
         }
@@ -321,10 +382,10 @@ namespace LookupTables {
             for (size_t sq = 0; sq < g_boardSize; ++sq) {
                 std::vector<size_t> maskSetBitsIndexes = setSetBitsIndexes(rookMasks[sq]);
 
-                for (size_t cnt = 0; cnt < (1ULL << rookBitsCnt[sq]); ++cnt) {
+                for (size_t cnt = 0; cnt < (BitOps::ONE << rookBitsCnt[sq]); ++cnt) {
                     const auto occupancy = setOccupancy(sq, cnt, maskSetBitsIndexes);
-                    auto magicKey = (occupancy.to_ullong() * rookMagics[sq].to_ullong()) >> (g_boardSize - rookBitsCnt[sq]);
-                    rookMagicTable[sq][magicKey] = setRookPossibleAttacks(sq, occupancy);;
+                    auto magicKey = (occupancy.to_ullong() * rookMagics[sq]) >> (g_boardSize - rookBitsCnt[sq]);
+                    rookMagicTable[sq][magicKey] = setRookPossibleAttacks(sq, occupancy);
                 }
             }
         }
@@ -335,12 +396,13 @@ namespace LookupTables {
 
                 for (size_t cnt = 0; cnt < (1ULL << bishopBitsCnt[sq]); ++cnt) {
                     const auto occupancy = setOccupancy(sq, cnt, maskSetBitsIndexes);
-                    auto magicKey = (occupancy.to_ullong() * bishopMagics[sq].to_ullong()) >> (g_boardSize - bishopBitsCnt[sq]);
+                    auto magicKey = (occupancy.to_ullong() * bishopMagics[sq]) >> (g_boardSize - bishopBitsCnt[sq]);
                     bishopMagicTable[sq][magicKey] = setBishopPossibleAttacks(sq, occupancy);
                 }
             }
         }
     }
+
     void initClearsAndMasks()
     {
         for (size_t i = 0; i < g_rankSize; ++i) {
@@ -351,8 +413,8 @@ namespace LookupTables {
             for (size_t k = 0; k < g_fileSize; ++k) {
                 clearRank[i].set((i * 8) + k, false);
                 maskRank[i].set((i * 8) + k, true);
-                clearFile[i].set((k * 8) + (7 - i), false);
-                maskFile[i].set((k * 8) + (7 - i), true);
+                clearFile[i].set((k * 8) + i, false);
+                maskFile[i].set((k * 8) + i, true);
             }
         }
     }
@@ -395,8 +457,8 @@ namespace LookupTables {
             rookMasks[i] =
                     (north[i] & clearRank[RANK_1]) |
                     (south[i] & clearRank[RANK_8]) |
-                    (west[i] & clearFile[FILE_H]) |
-                    (east[i] & clearFile[FILE_A]);
+                    (west[i] & clearFile[FILE_A]) |
+                    (east[i] & clearFile[FILE_H]);
             rookMasks[i][i] = false;
         }
     }
@@ -409,10 +471,16 @@ namespace LookupTables {
             bishopMasks[i][i] = false;
         }
     }
-    void initSlidingPiecesTable()
+    void initSlidingAttacks()
     {
-        MagicBB::initRookMagicTable();
-        MagicBB::initBishopMagicTable();
+        SlidingAttacks::initRookMagicTable();
+        SlidingAttacks::initBishopMagicTable();
+    }
+    void initNonSlidingAttacks()
+    {
+        NonSlidingAttacks::initPawnAttacks();
+        NonSlidingAttacks::initKnightAttacks();
+        NonSlidingAttacks::initKingAttacks();
     }
 
     void init() {
@@ -420,75 +488,200 @@ namespace LookupTables {
         initDirections();
         initRookMasks();
         initBishopMasks();
-        initSlidingPiecesTable();
+        initSlidingAttacks();
+        initNonSlidingAttacks();
     }
 }
 
-class MoveGenerator {
+class Move {
 public:
-    static Bitboard generateKingMoves(const Bitboard &t_kingLoc, const Bitboard &t_ownPieces)
-    {
-        Bitboard kingClippedFileH = t_kingLoc & LookupTables::clearFile[FILE_H];
-        Bitboard kingClippedFileA = t_kingLoc & LookupTables::clearFile[FILE_A];
-
-        Bitboard square1 = kingClippedFileH >> 7;
-        Bitboard square2 = kingClippedFileH << 9;
-        Bitboard square3 = kingClippedFileH << 1;
-        Bitboard square4 = kingClippedFileA << 7;
-        Bitboard square5 = kingClippedFileA >> 9;
-        Bitboard square6 = kingClippedFileA >> 1;
-        Bitboard square7 = t_kingLoc << 8;
-        Bitboard square8 = t_kingLoc >> 8;
-
-        Bitboard kingMoves = square1 | square2 | square3 | square4 | square5 | square6 | square7 | square8;
-        Bitboard validKing = kingMoves & ~t_ownPieces;
-
-        return validKing;
-    }
-    static Bitboard generateKnightMoves(const size_t &t_loc, const Bitboard &t_ownPieces)
-    {
-        return LookupTables::Attacks::knightAttacks[t_loc] & ~t_ownPieces;
-    }
-    static Bitboard generateWhitePawnMoves(const Bitboard &t_pawnLoc, const Bitboard &t_blackPieces, const Bitboard &t_allPieces)
-    {
-        Bitboard oneSquareMove = (t_pawnLoc << 8) & ~t_allPieces;
-        Bitboard twoSquaresMove = ((oneSquareMove & LookupTables::maskRank[RANK_3]) << 8) & ~t_allPieces;
-        Bitboard validQuietMoves = oneSquareMove | twoSquaresMove;
-
-        Bitboard leftAttackMove = (t_pawnLoc & LookupTables::clearFile[FILE_A]) << 7;
-        Bitboard rightAttackMove = (t_pawnLoc & LookupTables::clearFile[FILE_H]) << 9;
-        Bitboard allAttackMoves = leftAttackMove | rightAttackMove;
-        Bitboard validAttackMoves = allAttackMoves & t_blackPieces;
-
-        Bitboard pawnValid = validQuietMoves | validAttackMoves;
-
-        return pawnValid;
-    }
-    static Bitboard generateBlackPawnMoves(const Bitboard &t_pawnLoc, const Bitboard &t_whitePieces, const Bitboard &t_allPieces)
-    {
-        Bitboard oneSquareMove = (t_pawnLoc >> 8) & ~t_allPieces;
-        Bitboard twoSquaresMove = ((oneSquareMove & LookupTables::maskRank[RANK_6]) >> 8) & ~t_allPieces;
-        Bitboard validQuietMoves = oneSquareMove | twoSquaresMove;
-
-        Bitboard leftAttackMove = (t_pawnLoc & LookupTables::clearFile[FILE_A]) >> 7;
-        Bitboard rightAttackMove = (t_pawnLoc & LookupTables::clearFile[FILE_H]) >> 9;
-        Bitboard allAttackMoves = leftAttackMove | rightAttackMove;
-        Bitboard validAttackMoves = allAttackMoves & t_whitePieces;
-
-        Bitboard pawnValid = validQuietMoves | validAttackMoves;
-
-        return pawnValid;
-    }
-
+    Move(BoardInd t_from, BoardInd t_to) : from(t_from), to(t_to) {};
+    BoardInd getFrom() const { return from; }
+    BoardInd getTo() const { return to; }
+    void setFrom(BoardInd t_from) { from = t_from; }
+    void setTo(BoardInd t_to) { to = t_to; }
+private:
+    BoardInd from, to;
 };
+
+typedef std::vector<Move> MoveSet;
+
+class MoveGenerator {
+private:
+    static Bitboard getMagicRookMoves(const size_t &from, const Bitboard &ownPieces, const Bitboard &allPieces)
+    {
+        auto blockers = (LookupTables::rookMasks[from] & allPieces).to_ullong();
+        uint64_t key = (blockers * rookMagics[from]) >> (g_boardSize - rookBitsCnt[from]);
+        return LookupTables::SlidingAttacks::rookMagicTable[from][key] & ~ownPieces;
+    }
+    static Bitboard getMagicBishopMoves(const size_t &from, const Bitboard &ownPieces, const Bitboard &allPieces)
+    {
+        auto blockers = (LookupTables::bishopMasks[from] & allPieces).to_ullong();
+        uint64_t key = (blockers * bishopMagics[from]) >> (g_boardSize - bishopBitsCnt[from]);
+        return LookupTables::SlidingAttacks::bishopMagicTable[from][key] & ~ownPieces;
+    }
+    //TODO:generating moves of pieces can be common code
+    static void generateKingMoves(MoveSet &moveSet, Bitboard king, const Bitboard &ownPieces)
+    {
+        while (king.any()) {
+            size_t from = BitOps::findFirstBit(king);
+            Bitboard generated = LookupTables::NonSlidingAttacks::kingAttacks[from] & ~ownPieces;
+            while (generated.any()) {
+                size_t to = BitOps::findFirstBit(generated);
+                moveSet.emplace_back(from, to);
+                generated.reset(to);
+            }
+            king.reset(from);
+        }
+    }
+    static void generateKnightMoves(MoveSet &moveSet, Bitboard knights, const Bitboard &ownPieces)
+    {
+        while (knights.any()) {
+            size_t from = BitOps::findFirstBit(knights);
+            Bitboard generated = LookupTables::NonSlidingAttacks::knightAttacks[from] & ~ownPieces;
+            while (generated.any()) {
+                size_t to = BitOps::findFirstBit(generated);
+                moveSet.emplace_back(from, to);
+                generated.reset(to);
+            }
+            knights.reset(from);
+        }
+    }
+    static void generateRookMoves(MoveSet &moveSet, Bitboard rooks, const Bitboard &ownPieces, const Bitboard &allPieces)
+    {
+        while (rooks.any()) {
+            size_t from = BitOps::findFirstBit(rooks);
+            Bitboard generated = getMagicRookMoves(from, ownPieces, allPieces);
+            while (generated.any()) {
+                size_t to = BitOps::findFirstBit(generated);
+                moveSet.emplace_back(from, to);
+                generated.reset(to);
+            }
+            rooks.reset(from);
+        }
+    }
+    static void generateBishopMoves(MoveSet &moveSet, Bitboard bishops, const Bitboard &ownPieces, const Bitboard &allPieces)
+    {
+        while (bishops.any()) {
+            size_t from = BitOps::findFirstBit(bishops);
+            Bitboard generated = getMagicBishopMoves(from, ownPieces, allPieces);
+            while (generated.any()) {
+                size_t to = BitOps::findFirstBit(generated);
+                moveSet.emplace_back(from, to);
+                generated.reset(to);
+            }
+            bishops.reset(from);
+        }
+    }
+    static void generateQueenMoves(MoveSet &moveSet, Bitboard queens, const Bitboard &ownPieces, const Bitboard &allPieces)
+    {
+        while (queens.any()) {
+            size_t from = BitOps::findFirstBit(queens);
+            Bitboard generatedRook = getMagicRookMoves(from, ownPieces, allPieces);
+            Bitboard generatedBishop = getMagicBishopMoves(from, ownPieces, allPieces);
+            while (generatedRook.any()) {
+                size_t to = BitOps::findFirstBit(generatedRook);
+                moveSet.emplace_back(from, to);
+                generatedRook.reset(to);
+            }
+            while (generatedBishop.any()) {
+                size_t to = BitOps::findFirstBit(generatedBishop);
+                moveSet.emplace_back(from, to);
+                generatedBishop.reset(to);
+            }
+            queens.reset(from);
+        }
+    }
+    static void generateWhitePawnMoves(MoveSet &moveSet, Bitboard pawns, const Bitboard &blackPieces, const Bitboard &allPieces)
+    {
+        while (pawns.any()) {
+            size_t from = BitOps::findFirstBit(pawns);
+            Bitboard pawn = BitOps::ONE << from;
+            Bitboard oneSquareMove = (pawn << 8) & ~allPieces;
+            Bitboard twoSquaresMove = ((oneSquareMove & LookupTables::maskRank[RANK_3]) << 8) & ~allPieces;
+            Bitboard quietMoves = oneSquareMove | twoSquaresMove;
+            Bitboard attackMoves = LookupTables::NonSlidingAttacks::whitePawnAttacks[from] & blackPieces;
+            Bitboard moves = quietMoves | attackMoves;
+            while (moves.any()) {
+                size_t to = BitOps::findFirstBit(moves);
+                moveSet.emplace_back(from, to);
+                moves.reset(to);
+            }
+            pawns.reset(from);
+        }
+    }
+    static void generateBlackPawnMoves(MoveSet &moveSet, Bitboard pawns, const Bitboard &whitePieces, const Bitboard &allPieces)
+    {
+        while (pawns.any()) {
+            size_t from = BitOps::findFirstBit(pawns);
+            Bitboard pawn = BitOps::ONE << from;
+            Bitboard oneSquareMove = (pawn >> 8) & ~allPieces;
+            Bitboard twoSquaresMove = ((oneSquareMove & LookupTables::maskRank[RANK_6]) >> 8) & ~allPieces;
+            Bitboard quietMoves = oneSquareMove | twoSquaresMove;
+            Bitboard attackMoves = LookupTables::NonSlidingAttacks::blackPawnAttacks[from] & whitePieces;
+            Bitboard moves = quietMoves | attackMoves;
+            while (moves.any()) {
+                size_t to = BitOps::findFirstBit(moves);
+                moveSet.emplace_back(from, to);
+                moves.reset(to);
+            }
+            pawns.reset(from);
+        }
+    }
+
+    static MoveSet &genWhitePseudoMoveSet(MoveSet &moveSet, const Board &board)
+    {
+        generateKingMoves(moveSet, board.whiteKing, board.allWhitePieces);
+        generateKnightMoves(moveSet, board.whiteKnights, board.allWhitePieces);
+        generateRookMoves(moveSet, board.whiteRooks, board.allWhitePieces, board.allPieces);
+        generateBishopMoves(moveSet, board.whiteBishops, board.allWhitePieces, board.allPieces);
+        generateQueenMoves(moveSet, board.whiteQueens, board.allWhitePieces, board.allPieces);
+        generateWhitePawnMoves(moveSet, board.whitePawns, board.allBlackPieces, board.allPieces);
+
+        return moveSet;
+    }
+    static MoveSet &genBlackPseudoMoveSet(MoveSet &moveSet, const Board &board)
+    {
+        generateKingMoves(moveSet, board.blackKing, board.allBlackPieces);
+        generateKnightMoves(moveSet, board.blackKnights, board.allBlackPieces);
+        generateRookMoves(moveSet, board.blackRooks, board.allBlackPieces, board.allPieces);
+        generateBishopMoves(moveSet, board.blackBishops, board.allBlackPieces, board.allPieces);
+        generateQueenMoves(moveSet, board.blackQueens, board.allBlackPieces, board.allPieces);
+        generateBlackPawnMoves(moveSet, board.blackPawns, board.allWhitePieces, board.allPieces);
+
+        return moveSet;
+    }
+
+public:
+    static MoveSet generateMoveSet(const Board &board, const Color &color)
+    {
+        MoveSet moveSet;
+        return color == Color::WHITE ? genWhitePseudoMoveSet(moveSet, board) : genBlackPseudoMoveSet(moveSet, board);
+    }
+};
+
+void displayMoveSet(const MoveSet &ms)
+{
+    std::cout << "size = " << ms.size() << "\n";
+    std::for_each(ms.cbegin(), ms.cend(),
+                  [](const Move& move)
+                  {
+                      static int cnt = 0;
+                      if (cnt % 10 == 0)
+                          std::cout << "\n";
+                      std::cout << "Move: " << (char)('A' + move.getFrom().to_ulong() % 8) << (char)('1' + move.getFrom().to_ulong() / 8)
+                                << "-" << (char)('A' + move.getTo().to_ulong() % 8) << (char)('1' + move.getTo().to_ulong() / 8) << ",  ";
+                      ++cnt;
+                  });
+}
 
 int main()
 {
     LookupTables::init();
     Board board;
-
     board.displayBoard();
-    displayBitboard(LookupTables::MagicBB::rookMagicTable[0][2]);
+    auto m = MoveGenerator::generateMoveSet(board, Color::WHITE);
+    displayMoveSet(m);
 //
 //    displayBitboard(MoveGenerator::generateKingMoves(board.whiteKing, board.allWhitePieces));
 //    displayBitboard(MoveGenerator::generateKnightMoves(board.whiteKnights, board.allWhitePieces));
