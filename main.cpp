@@ -7,7 +7,7 @@
 #include <algorithm>
 
 typedef std::bitset<64> Bitboard;
-typedef std::bitset<6> BoardInd;
+typedef std::bitset<6> BIndex;
 constexpr size_t g_rankSize = 8, g_fileSize = 8;
 constexpr size_t g_boardSize = g_rankSize * g_fileSize;
 template <size_t I> using MagicTable = std::array<std::array<Bitboard, I>, g_boardSize>;
@@ -15,6 +15,15 @@ template <size_t I> using MagicTable = std::array<std::array<Bitboard, I>, g_boa
 enum class Color {
     WHITE, BLACK
 };
+
+enum class MoveType {
+    REGULAR, QUIET, CAPTURE, PROMOTION, CAPTURE_PROMOTION, DOUBLE_PAWN, EN_PASSANT, K_CASTLING, Q_CASTLING
+};
+
+enum class PromotionType {
+    NONE, QUEEN_PROM, ROOK_PROM, KNIGHT_PROM, BISHOP_PROM
+};
+
 enum Square {
     A8, B8, C8, D8, E8, F8, G8, H8,
     A7, B7, C7, D7, E7, F7, G7, H7,
@@ -182,6 +191,9 @@ public:
     Bitboard allWhitePieces;
     Bitboard allBlackPieces;
     Bitboard allPieces;
+
+    Bitboard attackableWhitePawnsEnPassant; // todo: it will be reset before updated when a pawn make double move
+    Bitboard attackableBlackPawnsEnPassant; // todo: it will be reset before updated when a pawn make double move
 
     Board()
     {
@@ -495,13 +507,20 @@ namespace LookupTables {
 
 class Move {
 public:
-    Move(BoardInd t_from, BoardInd t_to) : from(t_from), to(t_to) {};
-    BoardInd getFrom() const { return from; }
-    BoardInd getTo() const { return to; }
-    void setFrom(BoardInd t_from) { from = t_from; }
-    void setTo(BoardInd t_to) { to = t_to; }
+    Move(BIndex t_from, BIndex t_to, MoveType t_moveType = MoveType::REGULAR, PromotionType t_promotionType = PromotionType::NONE)
+    : from(t_from), to(t_to), moveType(t_moveType), promotionType(t_promotionType) {};
+    BIndex getFrom() const { return from; }
+    BIndex getTo() const { return to; }
+    MoveType getMoveType() const { return moveType; }
+    PromotionType getPromotionType() const { return promotionType; }
+    void setFrom(BIndex t_from) { from = t_from; }
+    void setTo(BIndex t_to) { to = t_to; }
+    void setMoveType(MoveType t_moveType) { moveType = t_moveType; }
+    void setPromotionType(PromotionType t_promotionType) { promotionType = t_promotionType; }
 private:
-    BoardInd from, to;
+    BIndex from, to;
+    MoveType moveType;
+    PromotionType promotionType;
 };
 
 typedef std::vector<Move> MoveSet;
@@ -592,39 +611,139 @@ private:
             queens.reset(from);
         }
     }
-    static void generateWhitePawnMoves(MoveSet &moveSet, Bitboard pawns, const Bitboard &blackPieces, const Bitboard &allPieces)
+    static void generateWhitePawnMoves(MoveSet &moveSet, Bitboard pawns, const Bitboard &blackPieces, const Bitboard &allPieces, const Bitboard &attackableBlackPawnsEnPassant)
     {
         while (pawns.any()) {
-            size_t from = BitOps::findFirstBit(pawns);
-            Bitboard pawn = BitOps::ONE << from;
-            Bitboard oneSquareMove = (pawn << 8) & ~allPieces;
-            Bitboard twoSquaresMove = ((oneSquareMove & LookupTables::maskRank[RANK_3]) << 8) & ~allPieces;
-            Bitboard quietMoves = oneSquareMove | twoSquaresMove;
-            Bitboard attackMoves = LookupTables::NonSlidingAttacks::whitePawnAttacks[from] & blackPieces;
-            Bitboard moves = quietMoves | attackMoves;
-            while (moves.any()) {
-                size_t to = BitOps::findFirstBit(moves);
-                moveSet.emplace_back(from, to);
-                moves.reset(to);
+            const size_t from = BitOps::findFirstBit(pawns);
+            const Bitboard pawn = BitOps::ONE << from;
+            const Bitboard oneSquareMoveWithPromotions = (pawn << 8) & ~allPieces;
+
+            //one square prom
+            Bitboard oneSquarePromotions = oneSquareMoveWithPromotions & LookupTables::maskRank[RANK_8];
+            while (oneSquarePromotions.any()) {
+                const size_t oneSqPromTo = BitOps::findFirstBit(oneSquarePromotions);
+                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::QUEEN_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::ROOK_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::BISHOP_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::KNIGHT_PROM);
+                oneSquarePromotions.reset(oneSqPromTo);
             }
+
+            //one square
+            Bitboard oneSquareMove = oneSquareMoveWithPromotions & ~LookupTables::maskRank[RANK_8];
+            while (oneSquareMove.any()) {
+                const size_t oneSqTo = BitOps::findFirstBit(oneSquareMove);
+                moveSet.emplace_back(from, oneSqTo);
+                oneSquareMove.reset(oneSqTo);
+            }
+
+            //double square
+            Bitboard doubleSquaresMove = ((oneSquareMoveWithPromotions & LookupTables::maskRank[RANK_3]) << 8) & ~allPieces;
+            while (doubleSquaresMove.any()) {
+                const size_t dblSqTo = BitOps::findFirstBit(doubleSquaresMove);
+                moveSet.emplace_back(from, dblSqTo, MoveType::DOUBLE_PAWN);
+                doubleSquaresMove.reset(dblSqTo);
+            }
+
+            Bitboard attackMovesWithPromotions = LookupTables::NonSlidingAttacks::whitePawnAttacks[from] & blackPieces;
+
+            //attack promotions
+            Bitboard attackPromotions = attackMovesWithPromotions & LookupTables::maskRank[RANK_8];
+            while (attackPromotions.any()) {
+                const size_t attackPromTo = BitOps::findFirstBit(attackPromotions);
+                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::QUEEN_PROM);
+                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::ROOK_PROM);
+                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::BISHOP_PROM);
+                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::KNIGHT_PROM);
+                attackPromotions.reset(attackPromTo);
+            }
+
+            //attack moves
+            Bitboard attackMoves = attackMovesWithPromotions & ~LookupTables::maskRank[RANK_8];
+            while (attackMoves.any()) {
+                const size_t attackTo = BitOps::findFirstBit(attackMoves);
+                moveSet.emplace_back(from, attackTo);
+                attackMoves.reset(attackTo);
+            }
+
+            //enPassant
+            Bitboard possibleEnPassant = LookupTables::NonSlidingAttacks::whitePawnAttacks[from] & ~allPieces;
+            while (possibleEnPassant.any()) {
+                const size_t enPassantTo = BitOps::findFirstBit(possibleEnPassant);
+                if (attackableBlackPawnsEnPassant[enPassantTo + 8]) {
+                    moveSet.emplace_back(from, enPassantTo, MoveType::EN_PASSANT);
+                }
+                possibleEnPassant.reset(enPassantTo);
+            }
+
             pawns.reset(from);
         }
     }
-    static void generateBlackPawnMoves(MoveSet &moveSet, Bitboard pawns, const Bitboard &whitePieces, const Bitboard &allPieces)
+    static void generateBlackPawnMoves(MoveSet &moveSet, Bitboard pawns, const Bitboard &whitePieces, const Bitboard &allPieces, const Bitboard &attackableWhitePawnsEnPassant)
     {
         while (pawns.any()) {
-            size_t from = BitOps::findFirstBit(pawns);
-            Bitboard pawn = BitOps::ONE << from;
-            Bitboard oneSquareMove = (pawn >> 8) & ~allPieces;
-            Bitboard twoSquaresMove = ((oneSquareMove & LookupTables::maskRank[RANK_6]) >> 8) & ~allPieces;
-            Bitboard quietMoves = oneSquareMove | twoSquaresMove;
-            Bitboard attackMoves = LookupTables::NonSlidingAttacks::blackPawnAttacks[from] & whitePieces;
-            Bitboard moves = quietMoves | attackMoves;
-            while (moves.any()) {
-                size_t to = BitOps::findFirstBit(moves);
-                moveSet.emplace_back(from, to);
-                moves.reset(to);
+            const size_t from = BitOps::findFirstBit(pawns);
+            const Bitboard pawn = BitOps::ONE << from;
+            const Bitboard oneSquareMoveWithPromotions = (pawn >> 8) & ~allPieces;
+
+            //one square prom
+            Bitboard oneSquarePromotions = oneSquareMoveWithPromotions & LookupTables::maskRank[RANK_1];
+            while (oneSquarePromotions.any()) {
+                const size_t oneSqPromTo = BitOps::findFirstBit(oneSquarePromotions);
+                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::QUEEN_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::ROOK_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::BISHOP_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::KNIGHT_PROM);
+                oneSquarePromotions.reset(oneSqPromTo);
             }
+
+            //one square
+            Bitboard oneSquareMove = oneSquareMoveWithPromotions & ~LookupTables::maskRank[RANK_1];
+            while (oneSquareMove.any()) {
+                const size_t oneSqTo = BitOps::findFirstBit(oneSquareMove);
+                moveSet.emplace_back(from, oneSqTo);
+                oneSquareMove.reset(oneSqTo);
+            }
+
+            //double square
+            Bitboard doubleSquaresMove = ((oneSquareMoveWithPromotions & LookupTables::maskRank[RANK_6]) >> 8) & ~allPieces;
+            while (doubleSquaresMove.any()) {
+                const size_t dblSqTo = BitOps::findFirstBit(doubleSquaresMove);
+                moveSet.emplace_back(from, dblSqTo, MoveType::DOUBLE_PAWN);
+                doubleSquaresMove.reset(dblSqTo);
+            }
+
+            Bitboard attackMovesWithPromotions = LookupTables::NonSlidingAttacks::blackPawnAttacks[from] & whitePieces;
+
+            //attack promotions
+            Bitboard attackPromotions = attackMovesWithPromotions & LookupTables::maskRank[RANK_1];
+            while (attackPromotions.any()) {
+                const size_t attackPromTo = BitOps::findFirstBit(attackPromotions);
+                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::QUEEN_PROM);
+                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::ROOK_PROM);
+                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::BISHOP_PROM);
+                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::KNIGHT_PROM);
+                attackPromotions.reset(attackPromTo);
+            }
+
+            //attack moves
+            Bitboard attackMoves = attackMovesWithPromotions & ~LookupTables::maskRank[RANK_1];
+            while (attackMoves.any()) {
+                const size_t attackTo = BitOps::findFirstBit(attackMoves);
+                moveSet.emplace_back(from, attackTo);
+                attackMoves.reset(attackTo);
+            }
+
+            //enPassant
+            Bitboard possibleEnPassant = LookupTables::NonSlidingAttacks::blackPawnAttacks[from] & ~allPieces;
+            while (possibleEnPassant.any()) {
+                const size_t enPassantTo = BitOps::findFirstBit(possibleEnPassant);
+                if (attackableWhitePawnsEnPassant[enPassantTo - 8]) {
+                    moveSet.emplace_back(from, enPassantTo, MoveType::EN_PASSANT);
+                }
+                possibleEnPassant.reset(enPassantTo);
+            }
+
             pawns.reset(from);
         }
     }
@@ -636,7 +755,7 @@ private:
         generateRookMoves(moveSet, board.whiteRooks, board.allWhitePieces, board.allPieces);
         generateBishopMoves(moveSet, board.whiteBishops, board.allWhitePieces, board.allPieces);
         generateQueenMoves(moveSet, board.whiteQueens, board.allWhitePieces, board.allPieces);
-        generateWhitePawnMoves(moveSet, board.whitePawns, board.allBlackPieces, board.allPieces);
+        generateWhitePawnMoves(moveSet, board.whitePawns, board.allBlackPieces, board.allPieces, board.attackableBlackPawnsEnPassant);
 
         return moveSet;
     }
@@ -647,7 +766,7 @@ private:
         generateRookMoves(moveSet, board.blackRooks, board.allBlackPieces, board.allPieces);
         generateBishopMoves(moveSet, board.blackBishops, board.allBlackPieces, board.allPieces);
         generateQueenMoves(moveSet, board.blackQueens, board.allBlackPieces, board.allPieces);
-        generateBlackPawnMoves(moveSet, board.blackPawns, board.allWhitePieces, board.allPieces);
+        generateBlackPawnMoves(moveSet, board.blackPawns, board.allWhitePieces, board.allPieces, board.attackableBlackPawnsEnPassant);
 
         return moveSet;
     }
