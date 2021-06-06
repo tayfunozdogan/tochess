@@ -114,7 +114,7 @@ public:
 
     void makeMove(Move move)
     {
-        size_t from = move.getFrom().to_ulong(), to = move.getTo().to_ulong();
+        size_t from = move.getFrom(), to = move.getTo();
         PieceType capturedPieceType = PieceType::NONE;
 
         //it must be reset every move because en passant must be made right after opposite's double pawn move.
@@ -424,7 +424,8 @@ public:
         std::cout << "\n";
         for (char ch = 'a'; ch <= 'h'; ++ch)
             std::cout << "   " << std::left << std::setw(2) << ch << " ";
-        std::cout << "\n\n";
+        std::string activePlayerStr =  activePlayer == Color::WHITE ? "WHITE" : "BLACK";
+        std::cout << "\n\nTURN: " + activePlayerStr + "\n\n";
     }
 };
 

@@ -9,7 +9,7 @@
 #include <iomanip>
 
 typedef std::bitset<64> Bitboard;
-typedef std::bitset<6> BIndex;
+typedef size_t BIndex;
 constexpr size_t g_rankSize = 8, g_fileSize = 8;
 constexpr size_t g_boardSize = g_rankSize * g_fileSize;
 

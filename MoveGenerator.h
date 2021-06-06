@@ -284,12 +284,7 @@ private:     //TODO: whole code must be refactored
                 tempBoard.makeMove(candidateMove);
                 genBlackPseudoMoveSet(inactivePlayerMoveSet, tempBoard);
 
-                for (auto &counterMove : inactivePlayerMoveSet) {
-                    if (BitOps::findFirstBit(tempBoard.whiteKing) == counterMove.getTo().to_ulong()) {
-                        isCandidateMoveLegal = false;
-                        break;
-                    }
-                }
+                isCandidateMoveLegal = !isKingInCheckByAnyMove(tempBoard, inactivePlayerMoveSet, Color::WHITE);
 
                 if (isCandidateMoveLegal)
                     legalMoveSet.push_back(candidateMove);
@@ -303,12 +298,7 @@ private:     //TODO: whole code must be refactored
                 tempBoard.makeMove(candidateMove);
                 genWhitePseudoMoveSet(inactivePlayerMoveSet, tempBoard);
 
-                for (auto &counterMove : inactivePlayerMoveSet) {
-                    if (BitOps::findFirstBit(tempBoard.blackKing) == counterMove.getTo().to_ulong()) {
-                        isCandidateMoveLegal = false;
-                        break;
-                    }
-                }
+                isCandidateMoveLegal = !isKingInCheckByAnyMove(tempBoard, inactivePlayerMoveSet, Color::BLACK);
 
                 if (isCandidateMoveLegal)
                     legalMoveSet.push_back(candidateMove);
@@ -316,17 +306,12 @@ private:     //TODO: whole code must be refactored
         }
     }
 
-    void generatePseudoMoveSet(const Board &board, const Color &color)
-    {
-        color == Color::WHITE ? genWhitePseudoMoveSet(pseudoMoveSet, board) : genBlackPseudoMoveSet(pseudoMoveSet, board);
-    }
-
     void seperateRegularMovesByMoveType(const Board &board, MoveSet &moveSet)
     {
         auto currentBoard = board.getAllPieces();
         for (auto &move : moveSet) {
             if (move.getMoveType() == MoveType::REGULAR) {
-                if (currentBoard.test(move.getTo().to_ulong()))
+                if (currentBoard.test(move.getTo()))
                     move.setMoveType(MoveType::CAPTURE);
                 else
                     move.setMoveType(MoveType::QUIET);
@@ -386,9 +371,27 @@ public:
     MoveSet legalMoveSet;
 
     // todo: color can be got from board active player
-    void generateLegalMoveSet(const Board &board, const Color &color) {
-        generatePseudoMoveSet(board, color);
-        filterPseudoMoveSetByLegality(board, color);
+    void generateLegalMoveSet(const Board &board) {
+        generatePseudoMoveSet(board, board.activePlayer);
+        filterPseudoMoveSetByLegality(board, board.activePlayer);
+    }
+
+    void generatePseudoMoveSet(const Board &board, const Color &color)
+    {
+        color == Color::WHITE ? genWhitePseudoMoveSet(pseudoMoveSet, board) : genBlackPseudoMoveSet(pseudoMoveSet, board);
+    }
+
+    static bool isKingInCheckByAnyMove(const Board &board, const MoveSet &moveSet, const Color &color)
+    {
+        auto &king = color == Color::WHITE ? board.whiteKing : board.blackKing;
+
+        for (auto &move : moveSet) {
+            if (BitOps::findFirstBit(king) == move.getTo()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 };
 #endif //POORMANSENGINE_MOVEGENERATOR_H
