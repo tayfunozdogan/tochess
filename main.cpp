@@ -42,8 +42,10 @@ int main()
     LookupTables::init();
     Board board;
     board.displayBoard();
-    auto m = MoveGenerator::generateMoveSet(board, Color::WHITE);
-    displayMoveSet(m);
+    MoveGenerator mg;
+//    board.changeActivePlayer();
+    mg.generateLegalMoveSet(board, board.activePlayer);
+    displayMoveSet(mg.legalMoveSet);
 //
 //    displayBitboard(MoveGenerator::generateKingMoves(board.whiteKing, board.allWhitePieces));
 //    displayBitboard(MoveGenerator::generateKnightMoves(board.whiteKnights, board.allWhitePieces));

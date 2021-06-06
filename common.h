@@ -31,6 +31,8 @@ enum class PieceType {
     WHITE_QUEEN,    BLACK_QUEEN,
     WHITE_KING,     BLACK_KING,
 
+    PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING, // todo: must be refactored
+
     NONE
 };
 std::ostream& operator<< (std::ostream &os, const PieceType &pieceType)

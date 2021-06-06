@@ -13,93 +13,98 @@
 typedef std::vector<Move> MoveSet;
 
 class MoveGenerator {
-private:
-    static Bitboard getMagicRookMoves(const size_t &from, const Bitboard &ownPieces, const Bitboard &allPieces)
+private:     //TODO: whole code must be refactored
+    Bitboard getMagicRookMoves(const size_t &from, const Bitboard &ownPieces, const Bitboard &allPieces)
     {
         auto blockers = (LookupTables::rookMasks[from] & allPieces).to_ullong();
         uint64_t key = (blockers * rookMagics[from]) >> (g_boardSize - rookBitsCnt[from]);
         return LookupTables::SlidingAttacks::rookMagicTable[from][key] & ~ownPieces;
     }
-    static Bitboard getMagicBishopMoves(const size_t &from, const Bitboard &ownPieces, const Bitboard &allPieces)
+    Bitboard getMagicBishopMoves(const size_t &from, const Bitboard &ownPieces, const Bitboard &allPieces)
     {
         auto blockers = (LookupTables::bishopMasks[from] & allPieces).to_ullong();
         uint64_t key = (blockers * bishopMagics[from]) >> (g_boardSize - bishopBitsCnt[from]);
         return LookupTables::SlidingAttacks::bishopMagicTable[from][key] & ~ownPieces;
     }
-    //TODO:generating moves of pieces can be common code
-    static void generateKingMoves(MoveSet &moveSet, Bitboard king, const Bitboard &ownPieces)
+    void generateKingMoves(MoveSet &moveSet, Bitboard king, const Bitboard &ownPieces)
     {
+        const PieceType pieceType = PieceType::KING;
         while (king.any()) {
             size_t from = BitOps::findFirstBit(king);
             Bitboard generated = LookupTables::NonSlidingAttacks::kingAttacks[from] & ~ownPieces;
             while (generated.any()) {
                 size_t to = BitOps::findFirstBit(generated);
-                moveSet.emplace_back(from, to);
+                moveSet.emplace_back(from, to, pieceType);
                 generated.reset(to);
             }
             king.reset(from);
         }
     }
-    static void generateKnightMoves(MoveSet &moveSet, Bitboard knights, const Bitboard &ownPieces)
+    void generateKnightMoves(MoveSet &moveSet, Bitboard knights, const Bitboard &ownPieces)
     {
+        const PieceType pieceType = PieceType::KNIGHT;
         while (knights.any()) {
             size_t from = BitOps::findFirstBit(knights);
             Bitboard generated = LookupTables::NonSlidingAttacks::knightAttacks[from] & ~ownPieces;
             while (generated.any()) {
                 size_t to = BitOps::findFirstBit(generated);
-                moveSet.emplace_back(from, to);
+                moveSet.emplace_back(from, to, pieceType);
                 generated.reset(to);
             }
             knights.reset(from);
         }
     }
-    static void generateRookMoves(MoveSet &moveSet, Bitboard rooks, const Bitboard &ownPieces, const Bitboard &allPieces)
+    void generateRookMoves(MoveSet &moveSet, Bitboard rooks, const Bitboard &ownPieces, const Bitboard &allPieces)
     {
+        const PieceType pieceType = PieceType::ROOK;
         while (rooks.any()) {
             size_t from = BitOps::findFirstBit(rooks);
             Bitboard generated = getMagicRookMoves(from, ownPieces, allPieces);
             while (generated.any()) {
                 size_t to = BitOps::findFirstBit(generated);
-                moveSet.emplace_back(from, to);
+                moveSet.emplace_back(from, to, pieceType);
                 generated.reset(to);
             }
             rooks.reset(from);
         }
     }
-    static void generateBishopMoves(MoveSet &moveSet, Bitboard bishops, const Bitboard &ownPieces, const Bitboard &allPieces)
+    void generateBishopMoves(MoveSet &moveSet, Bitboard bishops, const Bitboard &ownPieces, const Bitboard &allPieces)
     {
+        const PieceType pieceType = PieceType::BISHOP;
         while (bishops.any()) {
             size_t from = BitOps::findFirstBit(bishops);
             Bitboard generated = getMagicBishopMoves(from, ownPieces, allPieces);
             while (generated.any()) {
                 size_t to = BitOps::findFirstBit(generated);
-                moveSet.emplace_back(from, to);
+                moveSet.emplace_back(from, to, pieceType);
                 generated.reset(to);
             }
             bishops.reset(from);
         }
     }
-    static void generateQueenMoves(MoveSet &moveSet, Bitboard queens, const Bitboard &ownPieces, const Bitboard &allPieces)
+    void generateQueenMoves(MoveSet &moveSet, Bitboard queens, const Bitboard &ownPieces, const Bitboard &allPieces)
     {
+        const PieceType pieceType = PieceType::QUEEN;
         while (queens.any()) {
             size_t from = BitOps::findFirstBit(queens);
             Bitboard generatedRook = getMagicRookMoves(from, ownPieces, allPieces);
             Bitboard generatedBishop = getMagicBishopMoves(from, ownPieces, allPieces);
             while (generatedRook.any()) {
                 size_t to = BitOps::findFirstBit(generatedRook);
-                moveSet.emplace_back(from, to);
+                moveSet.emplace_back(from, to, pieceType);
                 generatedRook.reset(to);
             }
             while (generatedBishop.any()) {
                 size_t to = BitOps::findFirstBit(generatedBishop);
-                moveSet.emplace_back(from, to);
+                moveSet.emplace_back(from, to, pieceType);
                 generatedBishop.reset(to);
             }
             queens.reset(from);
         }
     }
-    static void generateWhitePawnMoves(MoveSet &moveSet, Bitboard pawns, const Bitboard &blackPieces, const Bitboard &allPieces, const Bitboard &attackableBlackPawnsEnPassant)
+    void generateWhitePawnMoves(MoveSet &moveSet, Bitboard pawns, const Bitboard &blackPieces, const Bitboard &allPieces, const Bitboard &attackableBlackPawnsEnPassant)
     {
+        const PieceType pieceType = PieceType::PAWN;
         while (pawns.any()) {
             const size_t from = BitOps::findFirstBit(pawns);
             const Bitboard pawn = BitOps::ONE << from;
@@ -109,10 +114,10 @@ private:
             Bitboard oneSquarePromotions = oneSquareMoveWithPromotions & LookupTables::maskRank[RANK_8];
             while (oneSquarePromotions.any()) {
                 const size_t oneSqPromTo = BitOps::findFirstBit(oneSquarePromotions);
-                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::QUEEN_PROM);
-                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::ROOK_PROM);
-                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::BISHOP_PROM);
-                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::KNIGHT_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, pieceType, MoveType::PROMOTION, PromotionType::QUEEN_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, pieceType, MoveType::PROMOTION, PromotionType::ROOK_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, pieceType, MoveType::PROMOTION, PromotionType::BISHOP_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, pieceType, MoveType::PROMOTION, PromotionType::KNIGHT_PROM);
                 oneSquarePromotions.reset(oneSqPromTo);
             }
 
@@ -120,7 +125,7 @@ private:
             Bitboard oneSquareMove = oneSquareMoveWithPromotions & ~LookupTables::maskRank[RANK_8];
             while (oneSquareMove.any()) {
                 const size_t oneSqTo = BitOps::findFirstBit(oneSquareMove);
-                moveSet.emplace_back(from, oneSqTo);
+                moveSet.emplace_back(from, oneSqTo, pieceType);
                 oneSquareMove.reset(oneSqTo);
             }
 
@@ -128,7 +133,7 @@ private:
             Bitboard doubleSquaresMove = ((oneSquareMoveWithPromotions & LookupTables::maskRank[RANK_3]) << 8) & ~allPieces;
             while (doubleSquaresMove.any()) {
                 const size_t dblSqTo = BitOps::findFirstBit(doubleSquaresMove);
-                moveSet.emplace_back(from, dblSqTo, MoveType::DOUBLE_PAWN);
+                moveSet.emplace_back(from, dblSqTo, pieceType, MoveType::DOUBLE_PAWN);
                 doubleSquaresMove.reset(dblSqTo);
             }
 
@@ -138,10 +143,10 @@ private:
             Bitboard attackPromotions = attackMovesWithPromotions & LookupTables::maskRank[RANK_8];
             while (attackPromotions.any()) {
                 const size_t attackPromTo = BitOps::findFirstBit(attackPromotions);
-                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::QUEEN_PROM);
-                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::ROOK_PROM);
-                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::BISHOP_PROM);
-                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::KNIGHT_PROM);
+                moveSet.emplace_back(from, attackPromTo, pieceType, MoveType::CAPTURE_PROMOTION, PromotionType::QUEEN_PROM);
+                moveSet.emplace_back(from, attackPromTo, pieceType, MoveType::CAPTURE_PROMOTION, PromotionType::ROOK_PROM);
+                moveSet.emplace_back(from, attackPromTo, pieceType, MoveType::CAPTURE_PROMOTION, PromotionType::BISHOP_PROM);
+                moveSet.emplace_back(from, attackPromTo, pieceType, MoveType::CAPTURE_PROMOTION, PromotionType::KNIGHT_PROM);
                 attackPromotions.reset(attackPromTo);
             }
 
@@ -149,7 +154,7 @@ private:
             Bitboard attackMoves = attackMovesWithPromotions & ~LookupTables::maskRank[RANK_8];
             while (attackMoves.any()) {
                 const size_t attackTo = BitOps::findFirstBit(attackMoves);
-                moveSet.emplace_back(from, attackTo);
+                moveSet.emplace_back(from, attackTo, pieceType);
                 attackMoves.reset(attackTo);
             }
 
@@ -158,7 +163,7 @@ private:
             while (possibleEnPassant.any()) {
                 const size_t enPassantTo = BitOps::findFirstBit(possibleEnPassant);
                 if (attackableBlackPawnsEnPassant[enPassantTo + 8]) {
-                    moveSet.emplace_back(from, enPassantTo, MoveType::EN_PASSANT);
+                    moveSet.emplace_back(from, enPassantTo, pieceType, MoveType::EN_PASSANT);
                 }
                 possibleEnPassant.reset(enPassantTo);
             }
@@ -166,8 +171,9 @@ private:
             pawns.reset(from);
         }
     }
-    static void generateBlackPawnMoves(MoveSet &moveSet, Bitboard pawns, const Bitboard &whitePieces, const Bitboard &allPieces, const Bitboard &attackableWhitePawnsEnPassant)
+    void generateBlackPawnMoves(MoveSet &moveSet, Bitboard pawns, const Bitboard &whitePieces, const Bitboard &allPieces, const Bitboard &attackableWhitePawnsEnPassant)
     {
+        const PieceType pieceType = PieceType::PAWN;
         while (pawns.any()) {
             const size_t from = BitOps::findFirstBit(pawns);
             const Bitboard pawn = BitOps::ONE << from;
@@ -177,10 +183,10 @@ private:
             Bitboard oneSquarePromotions = oneSquareMoveWithPromotions & LookupTables::maskRank[RANK_1];
             while (oneSquarePromotions.any()) {
                 const size_t oneSqPromTo = BitOps::findFirstBit(oneSquarePromotions);
-                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::QUEEN_PROM);
-                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::ROOK_PROM);
-                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::BISHOP_PROM);
-                moveSet.emplace_back(from, oneSqPromTo, MoveType::PROMOTION, PromotionType::KNIGHT_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, pieceType, MoveType::PROMOTION, PromotionType::QUEEN_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, pieceType, MoveType::PROMOTION, PromotionType::ROOK_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, pieceType, MoveType::PROMOTION, PromotionType::BISHOP_PROM);
+                moveSet.emplace_back(from, oneSqPromTo, pieceType, MoveType::PROMOTION, PromotionType::KNIGHT_PROM);
                 oneSquarePromotions.reset(oneSqPromTo);
             }
 
@@ -188,7 +194,7 @@ private:
             Bitboard oneSquareMove = oneSquareMoveWithPromotions & ~LookupTables::maskRank[RANK_1];
             while (oneSquareMove.any()) {
                 const size_t oneSqTo = BitOps::findFirstBit(oneSquareMove);
-                moveSet.emplace_back(from, oneSqTo);
+                moveSet.emplace_back(from, oneSqTo, pieceType);
                 oneSquareMove.reset(oneSqTo);
             }
 
@@ -196,7 +202,7 @@ private:
             Bitboard doubleSquaresMove = ((oneSquareMoveWithPromotions & LookupTables::maskRank[RANK_6]) >> 8) & ~allPieces;
             while (doubleSquaresMove.any()) {
                 const size_t dblSqTo = BitOps::findFirstBit(doubleSquaresMove);
-                moveSet.emplace_back(from, dblSqTo, MoveType::DOUBLE_PAWN);
+                moveSet.emplace_back(from, dblSqTo, pieceType, MoveType::DOUBLE_PAWN);
                 doubleSquaresMove.reset(dblSqTo);
             }
 
@@ -206,10 +212,10 @@ private:
             Bitboard attackPromotions = attackMovesWithPromotions & LookupTables::maskRank[RANK_1];
             while (attackPromotions.any()) {
                 const size_t attackPromTo = BitOps::findFirstBit(attackPromotions);
-                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::QUEEN_PROM);
-                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::ROOK_PROM);
-                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::BISHOP_PROM);
-                moveSet.emplace_back(from, attackPromTo, MoveType::CAPTURE_PROMOTION, PromotionType::KNIGHT_PROM);
+                moveSet.emplace_back(from, attackPromTo, pieceType, MoveType::CAPTURE_PROMOTION, PromotionType::QUEEN_PROM);
+                moveSet.emplace_back(from, attackPromTo, pieceType, MoveType::CAPTURE_PROMOTION, PromotionType::ROOK_PROM);
+                moveSet.emplace_back(from, attackPromTo, pieceType, MoveType::CAPTURE_PROMOTION, PromotionType::BISHOP_PROM);
+                moveSet.emplace_back(from, attackPromTo, pieceType, MoveType::CAPTURE_PROMOTION, PromotionType::KNIGHT_PROM);
                 attackPromotions.reset(attackPromTo);
             }
 
@@ -217,7 +223,7 @@ private:
             Bitboard attackMoves = attackMovesWithPromotions & ~LookupTables::maskRank[RANK_1];
             while (attackMoves.any()) {
                 const size_t attackTo = BitOps::findFirstBit(attackMoves);
-                moveSet.emplace_back(from, attackTo);
+                moveSet.emplace_back(from, attackTo, pieceType);
                 attackMoves.reset(attackTo);
             }
 
@@ -226,7 +232,7 @@ private:
             while (possibleEnPassant.any()) {
                 const size_t enPassantTo = BitOps::findFirstBit(possibleEnPassant);
                 if (attackableWhitePawnsEnPassant[enPassantTo - 8]) {
-                    moveSet.emplace_back(from, enPassantTo, MoveType::EN_PASSANT);
+                    moveSet.emplace_back(from, enPassantTo, pieceType, MoveType::EN_PASSANT);
                 }
                 possibleEnPassant.reset(enPassantTo);
             }
@@ -235,65 +241,108 @@ private:
         }
     }
 
-    static MoveSet &genWhitePseudoMoveSetWithoutCastling(MoveSet &moveSet, const Board &board)
+    void genWhitePseudoMoveSetWithoutCastling(MoveSet &moveSet, const Board &board)
     {
-        generateKingMoves(moveSet, board.whiteKing, board.allWhitePieces);
-        generateKnightMoves(moveSet, board.whiteKnights, board.allWhitePieces);
-        generateRookMoves(moveSet, board.whiteRooks, board.allWhitePieces, board.allPieces);
-        generateBishopMoves(moveSet, board.whiteBishops, board.allWhitePieces, board.allPieces);
-        generateQueenMoves(moveSet, board.whiteQueens, board.allWhitePieces, board.allPieces);
-        generateWhitePawnMoves(moveSet, board.whitePawns, board.allBlackPieces, board.allPieces, board.attackableBlackPawnsEnPassant);
+        generateKingMoves(moveSet, board.whiteKing, board.getAllWhitePieces());
+        generateKnightMoves(moveSet, board.whiteKnights, board.getAllWhitePieces());
+        generateRookMoves(moveSet, board.whiteRooks, board.getAllWhitePieces(), board.getAllPieces());
+        generateBishopMoves(moveSet, board.whiteBishops, board.getAllWhitePieces(), board.getAllPieces());
+        generateQueenMoves(moveSet, board.whiteQueens, board.getAllWhitePieces(), board.getAllPieces());
+        generateWhitePawnMoves(moveSet, board.whitePawns, board.getAllBlackPieces(), board.getAllPieces(), board.attackableBlackPawnsEnPassant);
 
-        return moveSet;
+        seperateRegularMovesByMoveType(board, moveSet);
     }
-    static MoveSet &genBlackPseudoMoveSetWithoutCastling(MoveSet &moveSet, const Board &board)
+    void genBlackPseudoMoveSetWithoutCastling(MoveSet &moveSet, const Board &board)
     {
-        generateKingMoves(moveSet, board.blackKing, board.allBlackPieces);
-        generateKnightMoves(moveSet, board.blackKnights, board.allBlackPieces);
-        generateRookMoves(moveSet, board.blackRooks, board.allBlackPieces, board.allPieces);
-        generateBishopMoves(moveSet, board.blackBishops, board.allBlackPieces, board.allPieces);
-        generateQueenMoves(moveSet, board.blackQueens, board.allBlackPieces, board.allPieces);
-        generateBlackPawnMoves(moveSet, board.blackPawns, board.allWhitePieces, board.allPieces, board.attackableBlackPawnsEnPassant);
+        generateKingMoves(moveSet, board.blackKing, board.getAllBlackPieces());
+        generateKnightMoves(moveSet, board.blackKnights, board.getAllBlackPieces());
+        generateRookMoves(moveSet, board.blackRooks, board.getAllBlackPieces(), board.getAllPieces());
+        generateBishopMoves(moveSet, board.blackBishops, board.getAllBlackPieces(), board.getAllPieces());
+        generateQueenMoves(moveSet, board.blackQueens, board.getAllBlackPieces(), board.getAllPieces());
+        generateBlackPawnMoves(moveSet, board.blackPawns, board.getAllWhitePieces(), board.getAllPieces(), board.attackableWhitePawnsEnPassant);
 
-        return moveSet;
+        seperateRegularMovesByMoveType(board, moveSet);
     }
 
-    static MoveSet &genWhitePseudoMoveSet(MoveSet &moveSet, const Board &board)
+    void genWhitePseudoMoveSet(MoveSet &moveSet, const Board &board)
     {
-        generateKingMoves(moveSet, board.whiteKing, board.allWhitePieces);
-        generateKnightMoves(moveSet, board.whiteKnights, board.allWhitePieces);
-        generateRookMoves(moveSet, board.whiteRooks, board.allWhitePieces, board.allPieces);
-        generateBishopMoves(moveSet, board.whiteBishops, board.allWhitePieces, board.allPieces);
-        generateQueenMoves(moveSet, board.whiteQueens, board.allWhitePieces, board.allPieces);
-        generateWhitePawnMoves(moveSet, board.whitePawns, board.allBlackPieces, board.allPieces, board.attackableBlackPawnsEnPassant);
-
+        genWhitePseudoMoveSetWithoutCastling(moveSet, board);
         generateCastling(moveSet, board);
-
-        return moveSet;
     }
-    static MoveSet &genBlackPseudoMoveSet(MoveSet &moveSet, const Board &board)
+    void genBlackPseudoMoveSet(MoveSet &moveSet, const Board &board)
     {
-        generateKingMoves(moveSet, board.blackKing, board.allBlackPieces);
-        generateKnightMoves(moveSet, board.blackKnights, board.allBlackPieces);
-        generateRookMoves(moveSet, board.blackRooks, board.allBlackPieces, board.allPieces);
-        generateBishopMoves(moveSet, board.blackBishops, board.allBlackPieces, board.allPieces);
-        generateQueenMoves(moveSet, board.blackQueens, board.allBlackPieces, board.allPieces);
-        generateBlackPawnMoves(moveSet, board.blackPawns, board.allWhitePieces, board.allPieces, board.attackableBlackPawnsEnPassant);
-
+        genBlackPseudoMoveSetWithoutCastling(moveSet, board);
         generateCastling(moveSet, board);
-
-        return moveSet;
     }
 
-    static void generateCastling(MoveSet &t_moveSet, const Board &board)
+    void filterPseudoMoveSetByLegality(const Board &board, const Color &color) {
+        if (color == Color::WHITE) {
+            for (auto &candidateMove : pseudoMoveSet) {
+                bool isCandidateMoveLegal = true;
+                MoveSet inactivePlayerMoveSet;
+                Board tempBoard = board;
+                tempBoard.makeMove(candidateMove);
+                genBlackPseudoMoveSet(inactivePlayerMoveSet, tempBoard);
+
+                for (auto &counterMove : inactivePlayerMoveSet) {
+                    if (BitOps::findFirstBit(tempBoard.whiteKing) == counterMove.getTo().to_ulong()) {
+                        isCandidateMoveLegal = false;
+                        break;
+                    }
+                }
+
+                if (isCandidateMoveLegal)
+                    legalMoveSet.push_back(candidateMove);
+            }
+        }
+        else {
+            for (auto &candidateMove : pseudoMoveSet) {
+                bool isCandidateMoveLegal = true;
+                MoveSet inactivePlayerMoveSet;
+                Board tempBoard = board;
+                tempBoard.makeMove(candidateMove);
+                genWhitePseudoMoveSet(inactivePlayerMoveSet, tempBoard);
+
+                for (auto &counterMove : inactivePlayerMoveSet) {
+                    if (BitOps::findFirstBit(tempBoard.blackKing) == counterMove.getTo().to_ulong()) {
+                        isCandidateMoveLegal = false;
+                        break;
+                    }
+                }
+
+                if (isCandidateMoveLegal)
+                    legalMoveSet.push_back(candidateMove);
+            }
+        }
+    }
+
+    void generatePseudoMoveSet(const Board &board, const Color &color)
     {
+        color == Color::WHITE ? genWhitePseudoMoveSet(pseudoMoveSet, board) : genBlackPseudoMoveSet(pseudoMoveSet, board);
+    }
+
+    void seperateRegularMovesByMoveType(const Board &board, MoveSet &moveSet)
+    {
+        auto currentBoard = board.getAllPieces();
+        for (auto &move : moveSet) {
+            if (move.getMoveType() == MoveType::REGULAR) {
+                if (currentBoard.test(move.getTo().to_ulong()))
+                    move.setMoveType(MoveType::CAPTURE);
+                else
+                    move.setMoveType(MoveType::QUIET);
+            }
+        }
+    }
+    void generateCastling(MoveSet &t_moveSet, const Board &board)
+    {
+        const PieceType pieceType = PieceType::KING;
         MoveSet inactivePlayerMoveSet;
         bool qSideCastling = true, kSideCastling = true;
         if (board.inactivePlayer == Color::WHITE) { // active BLACK
             genWhitePseudoMoveSetWithoutCastling(inactivePlayerMoveSet, board);
 
             // is squares between rook and king in check? is king in check?
-            for (auto move : inactivePlayerMoveSet) {
+            for (auto &move : inactivePlayerMoveSet) {
                 if (move.getTo() == 58 || move.getTo() == 59)
                     qSideCastling = false;
                 if (move.getTo() == 61 || move.getTo() == 62)
@@ -306,15 +355,15 @@ private:
             }
             //is there any piece in squares between rook and king? and is castling rights valid?
             if (kSideCastling && board.isBlackKSideCastlingPossible() && board.isBlackKSideCastlingRightsValid())
-                t_moveSet.emplace_back(60, 62, MoveType::CASTLING, CastlingType::BLACK_KSIDE); //add kSideCastling for black
+                t_moveSet.emplace_back(60, 62, pieceType, MoveType::CASTLING, CastlingType::BLACK_KSIDE); //add kSideCastling for black
             if (qSideCastling && board.isBlackQSideCastlingPossible() && board.isBlackQSideCastlingRightsValid())
-                t_moveSet.emplace_back(60, 58, MoveType::CASTLING, CastlingType::BLACK_QSIDE); //add qSideCastling for black
+                t_moveSet.emplace_back(60, 58, pieceType, MoveType::CASTLING, CastlingType::BLACK_QSIDE); //add qSideCastling for black
         }
         else { // active WHITE
             genBlackPseudoMoveSetWithoutCastling(inactivePlayerMoveSet, board);
 
             // is squares between rook and king in check? is king in check?
-            for (auto move : inactivePlayerMoveSet) {
+            for (auto &move : inactivePlayerMoveSet) {
                 if (move.getTo() == 2 || move.getTo() == 3)
                     qSideCastling = false;
                 if (move.getTo() == 5 || move.getTo() == 6)
@@ -326,17 +375,20 @@ private:
             }
             //is there any piece in squares between rook and king? and is castling rights valid?
             if (kSideCastling && board.isWhiteKSideCastlingPossible() && board.isWhiteKSideCastlingRightsValid())
-                t_moveSet.emplace_back(4, 6, MoveType::CASTLING, CastlingType::WHITE_KSIDE); //add kSideCastling for white
+                t_moveSet.emplace_back(4, 6, pieceType, MoveType::CASTLING, CastlingType::WHITE_KSIDE); //add kSideCastling for white
             if (qSideCastling && board.isWhiteQSideCastlingPossible() && board.isWhiteQSideCastlingRightsValid())
-                t_moveSet.emplace_back(4, 2, MoveType::CASTLING, CastlingType::WHITE_QSIDE); //add qSideCastling for white
+                t_moveSet.emplace_back(4, 2, pieceType, MoveType::CASTLING, CastlingType::WHITE_QSIDE); //add qSideCastling for white
         }
     }
 
 public:
-    static MoveSet generateMoveSet(const Board &board, const Color &color)
-    {
-        MoveSet moveSet;
-        return color == Color::WHITE ? genWhitePseudoMoveSet(moveSet, board) : genBlackPseudoMoveSet(moveSet, board);
+    MoveSet pseudoMoveSet;
+    MoveSet legalMoveSet;
+
+    // todo: color can be got from board active player
+    void generateLegalMoveSet(const Board &board, const Color &color) {
+        generatePseudoMoveSet(board, color);
+        filterPseudoMoveSetByLegality(board, color);
     }
 };
 #endif //POORMANSENGINE_MOVEGENERATOR_H
