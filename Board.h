@@ -53,13 +53,14 @@ public:
     // it will be updated after every move
     Color activePlayer, inactivePlayer;
 
-    // todo: it will be reset before updated when a pawn make double move
+    // todo: it is reset before updated when a pawn make double move
     Bitboard attackableWhitePawnsEnPassant;
     Bitboard attackableBlackPawnsEnPassant;
 
-    //todo: it will be updated after every move, moves are made using here
-    std::array<CastlingType, 4> castlingRights = { CastlingType::WHITE_KSIDE, CastlingType::WHITE_QSIDE,
-                                                   CastlingType::BLACK_KSIDE, CastlingType::BLACK_QSIDE };
+    //todo: it is updated after every move, moves are made using here
+    std::array<CastlingType, 4> castlingRights;
+
+    int halfMoveClock = 0; //50 repetition rule
 
     bool isWhiteKSideCastlingRightsValid() const {
         return castlingRights[0] != CastlingType::NONE;
@@ -106,6 +107,10 @@ public:
         allPieces = allWhitePieces | allBlackPieces;
         activePlayer = Color::WHITE;
         inactivePlayer = Color::BLACK;
+        castlingRights[0] = whiteKing.test(4) && whiteRooks.test(7) ? CastlingType::WHITE_KSIDE : CastlingType::NONE;
+        castlingRights[1] = whiteKing.test(4) && whiteRooks.test(0) ? CastlingType::WHITE_QSIDE : CastlingType::NONE;
+        castlingRights[2] = blackKing.test(60) && whiteRooks.test(63) ? CastlingType::BLACK_KSIDE : CastlingType::NONE;
+        castlingRights[3] = blackKing.test(60) && whiteRooks.test(56) ? CastlingType::BLACK_QSIDE : CastlingType::NONE;
     }
 
     Bitboard getAllWhitePieces() const { return whitePawns | whiteRooks | whiteKnights | whiteBishops | whiteQueens | whiteKing; }
@@ -132,6 +137,8 @@ public:
         } else if (move.getMoveType() == MoveType::EN_PASSANT) {
             capturedPieceType = PieceType::PAWN;
         }
+
+        if (move.getMoveType() == MoveType::CAPTURE || move.getMoveType() == MoveType::CAPTURE_PROMOTION) halfMoveClock = 0; //50 repetition rule
 
         //update bitboards by piece type made move
         if (activePlayer == Color::WHITE) {
@@ -196,6 +203,7 @@ public:
                         whitePawns.set(to);
                         getPieceBitboard(inactivePlayer, capturedPieceType).reset(to + 8);
                     }
+                    halfMoveClock = 0;
                     break;
                 }
                 case PieceType::KNIGHT: {
@@ -381,6 +389,7 @@ public:
             }
         }
 
+        halfMoveClock++;
         changeActivePlayer();
     }
 

@@ -122,8 +122,8 @@ namespace LookupTables {
                 Bitboard loc; loc.set(i);
                 Bitboard whiteNorthWest = (loc & LookupTables::clearFile[FILE_A]) << 7;
                 Bitboard whiteNorthEast = (loc & LookupTables::clearFile[FILE_H]) << 9;
-                Bitboard blackSouthWest = (loc & LookupTables::clearFile[FILE_A]) >> 7;
-                Bitboard blackSouthEast = (loc & LookupTables::clearFile[FILE_H]) >> 9;
+                Bitboard blackSouthWest = (loc & LookupTables::clearFile[FILE_H]) >> 7;
+                Bitboard blackSouthEast = (loc & LookupTables::clearFile[FILE_A]) >> 9;
                 whitePawnAttacks[i] = whiteNorthWest | whiteNorthEast;
                 blackPawnAttacks[i] = blackSouthWest | blackSouthEast;
             }

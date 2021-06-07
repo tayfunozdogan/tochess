@@ -50,17 +50,49 @@ std::optional<Move> findMove(const Board &board, const MoveSet &moveSet)
 
 
 enum class GameState {
-    WHITE_WIN, BLACK_WIN, DRAW, STALEMATE, ONGOING
+    WHITE_WIN, BLACK_WIN, INSUFFICIENT_MATERIAL, STALEMATE, ONGOING, FIFTY_REPETITION, THREEFOLD_REPETITION
 };
 
 class Game {
     Board board;
     GameState state;
+    std::vector<Board> boardHistory;
 
     Game()
     {
         state = GameState::ONGOING;
     }
+
+    bool isThreefoldRepetition()
+    {
+        const Board &curBoard = board;
+        int threefoldCount = 1;
+
+        for (const auto &prevBoard : boardHistory) {
+            if ((curBoard.getAllPieces() == prevBoard.getAllPieces()) &&
+            (curBoard.getAllBlackPieces() == prevBoard.getAllBlackPieces() && curBoard.getAllWhitePieces() == prevBoard.getAllWhitePieces()) &&
+            (curBoard.whitePawns == prevBoard.whitePawns && curBoard.blackPawns == prevBoard.blackPawns) &&
+            (curBoard.whiteRooks == prevBoard.whiteRooks && curBoard.blackRooks == prevBoard.blackRooks) &&
+            (curBoard.whiteKnights == prevBoard.whiteKnights && curBoard.blackKnights == prevBoard.blackKnights) &&
+            (curBoard.whiteBishops == prevBoard.whiteBishops && curBoard.blackBishops == prevBoard.blackBishops) &&
+            (curBoard.whiteQueens == prevBoard.whiteQueens && curBoard.blackQueens == prevBoard.blackQueens) &&
+            (curBoard.whiteKing == prevBoard.whiteKing && curBoard.blackKing == prevBoard.blackKing) &&
+            (curBoard.castlingRights[0] == prevBoard.castlingRights[0]) &&
+            (curBoard.castlingRights[1] == prevBoard.castlingRights[1]) &&
+            (curBoard.castlingRights[2] == prevBoard.castlingRights[2]) &&
+            (curBoard.castlingRights[3] == prevBoard.castlingRights[3]) &&
+            (curBoard.attackableWhitePawnsEnPassant == prevBoard.attackableWhitePawnsEnPassant) &&
+            (curBoard.attackableBlackPawnsEnPassant == prevBoard.attackableBlackPawnsEnPassant)) {
+                threefoldCount++;
+            }
+
+            if (threefoldCount == 3)
+                return true;
+        }
+
+        return false;
+    }
+
 public:
     static Game init()
     {
@@ -70,9 +102,21 @@ public:
 
     static void start(Game &game)
     {
+        game.boardHistory.push_back(game.board);
         game.board.displayBoard();
 
         while (game.getState() == GameState::ONGOING) {
+            if (game.board.halfMoveClock == 100) {
+                game.state = GameState::FIFTY_REPETITION;
+                return;
+            }
+            if (game.isThreefoldRepetition()) {
+                game.state = GameState::THREEFOLD_REPETITION;
+                return;
+            }
+            game.boardHistory.push_back(game.board);
+
+
             MoveGenerator moveGen;
             moveGen.generateLegalMoveSet(game.board);
             displayMoveSet(moveGen.legalMoveSet);
@@ -90,38 +134,51 @@ public:
                 }
                 return;
             } else if (game.board.getAllWhitePieces().count() == 1 && game.board.getAllBlackPieces().count() == 1) {
-                game.state = GameState::DRAW;
+                game.state = GameState::INSUFFICIENT_MATERIAL;
                 return;
             }
+
+            //print
             std::cout << "chosen Move: " << (char)('A' + foundMove.value().getFrom() % 8) << (char)('1' + foundMove.value().getFrom() / 8)
                       << "-" << (char)('A' + foundMove.value().getTo() % 8) << (char)('1' + foundMove.value().getTo() / 8) << "\n\n";
             std::cout << "-------------------------------------------------------------------------------------------\n\n";
-            //active player has changed
-            game.board.makeMove(foundMove.value());
+
+            game.board.makeMove(foundMove.value()); //active player has changed
             game.board.displayBoard();
         }
     }
 
-
+    float getNumberOfMove() { return (boardHistory.size() - 2.f) / 2.f; }
     GameState getState() { return state; }
     void setState(GameState t_state) { state = t_state; }
 };
 
 int main()
 {
-    Game game = Game::init();
+    while (true) {
+        Game game = Game::init();
 
-    Game::start(game);
+        Game::start(game);
 
 
-    if (game.getState() == GameState::WHITE_WIN)
-        std::cout << "\n**********Checkmate!! WHITE WON **********\n";
-    else if (game.getState() == GameState::BLACK_WIN)
-        std::cout << "\n**********Checkmate!! BLACK WON **********\n";
-    else if (game.getState() == GameState::DRAW)
-        std::cout << "\n**********DRAW**********\n";
-    else if (game.getState() == GameState::STALEMATE)
-        std::cout << "\n**********STALEMATE**********\n";
+        if (game.getState() == GameState::WHITE_WIN)
+            std::cout << "\n**********Checkmate!! WHITE WON **********\n";
+        else if (game.getState() == GameState::BLACK_WIN)
+            std::cout << "\n**********Checkmate!! BLACK WON **********\n";
+        else if (game.getState() == GameState::INSUFFICIENT_MATERIAL)
+            std::cout << "\n**********INSUFFICIENT_MATERIAL**********\n";
+        else if (game.getState() == GameState::THREEFOLD_REPETITION)
+            std::cout << "\n**********THREEFOLD_REPETITION**********\n";
+        else if (game.getState() == GameState::STALEMATE)
+            std::cout << "\n**********STALEMATE**********\n";
+        else if (game.getState() == GameState::FIFTY_REPETITION)
+            std::cout << "\n**********FIFTY_REPETITION**********\n";
+
+        std::cout << "\nnumber of move : " << game.getNumberOfMove();
+
+        if (game.getState() == GameState::WHITE_WIN || game.getState() == GameState::BLACK_WIN)
+            break;
+    }
 //    LookupTables::init();
 //    Board board;
 //    board.displayBoard();
