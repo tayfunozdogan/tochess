@@ -101,5 +101,21 @@ public:
     }
 };
 
+void displayBitboard(const Bitboard &bitboard)
+{
+//    for (size_t i = bitboard.size(); i > 0; --i) {
+//        if (!(i % 8))
+//            std::cout << "\n";
+//        std::cout << bitboard[i - 1] << " ";
+//    }
+//    std::cout << "\n";
+    for (size_t i = 0; i < bitboard.size(); ++i) {
+        if (!(i % 8))
+            std::cout << "\n";
+        std::cout << bitboard[i] << " ";
+    }
+    std::cout << "\n";
+}
+
 
 #endif //POORMANSENGINE_COMMON_H

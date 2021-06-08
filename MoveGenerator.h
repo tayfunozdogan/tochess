@@ -12,18 +12,34 @@
 
 typedef std::vector<Move> MoveSet;
 
+void displayMoveSet(const MoveSet &ms)
+{
+    std::cout << "size = " << ms.size() << "\n";
+    std::for_each(ms.cbegin(), ms.cend(),
+                  [](const Move& move)
+                  {
+                      static int cnt = 0;
+                      if (cnt % 10 == 0)
+                          std::cout << "\n";
+                      std::cout << "Move: " << (char)('A' + move.getFrom() % 8) << (char)('1' + move.getFrom() / 8)
+                                << "-" << (char)('A' + move.getTo() % 8) << (char)('1' + move.getTo() / 8) << ",  ";
+                      ++cnt;
+                  });
+    std::cout << "\n\n";
+}
+
 class MoveGenerator {
 private:     //TODO: whole code must be refactored
     Bitboard getMagicRookMoves(const size_t &from, const Bitboard &ownPieces, const Bitboard &allPieces)
     {
         auto blockers = (LookupTables::rookMasks[from] & allPieces).to_ullong();
-        uint64_t key = (blockers * rookMagics[from]) >> (g_boardSize - rookBitsCnt[from]);
+        uint64_t key = (blockers * MagicConstants::rookMagics[from]) >> (g_boardSize - MagicConstants::rookBitsCnt[from]);
         return LookupTables::SlidingAttacks::rookMagicTable[from][key] & ~ownPieces;
     }
     Bitboard getMagicBishopMoves(const size_t &from, const Bitboard &ownPieces, const Bitboard &allPieces)
     {
         auto blockers = (LookupTables::bishopMasks[from] & allPieces).to_ullong();
-        uint64_t key = (blockers * bishopMagics[from]) >> (g_boardSize - bishopBitsCnt[from]);
+        uint64_t key = (blockers * MagicConstants::bishopMagics[from]) >> (g_boardSize - MagicConstants::bishopBitsCnt[from]);
         return LookupTables::SlidingAttacks::bishopMagicTable[from][key] & ~ownPieces;
     }
     void generateKingMoves(MoveSet &moveSet, Bitboard king, const Bitboard &ownPieces)

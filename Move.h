@@ -49,5 +49,10 @@ private:
     PieceType pieceType;
 };
 
+void displayMove(const Move &move)
+{
+    std::cout << "chosen Move: " << (char)('A' + move.getFrom() % 8) << (char)('1' + move.getFrom() / 8)
+              << "-" << (char)('A' + move.getTo() % 8) << (char)('1' + move.getTo() / 8) << "\n";
+}
 
 #endif //POORMANSENGINE_MOVE_H
