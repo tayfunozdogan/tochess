@@ -2,8 +2,8 @@
 // Created by Tayfun Özdoğan on 7.06.2021.
 //
 
-#ifndef POORMANSENGINE_SEARCH_H
-#define POORMANSENGINE_SEARCH_H
+#ifndef TOCHESS_SEARCH_H
+#define TOCHESS_SEARCH_H
 
 
 #include <random>
@@ -191,4 +191,4 @@ public:
     }
 };
 
-#endif //POORMANSENGINE_SEARCH_H
+#endif //TOCHESS_SEARCH_H

@@ -2,8 +2,8 @@
 // Created by Tayfun Özdoğan on 4.06.2021.
 //
 
-#ifndef POORMANSENGINE_COMMON_H
-#define POORMANSENGINE_COMMON_H
+#ifndef TOCHESS_COMMON_H
+#define TOCHESS_COMMON_H
 
 #include <bitset>
 #include <iomanip>
@@ -118,4 +118,4 @@ void displayBitboard(const Bitboard &bitboard)
 }
 
 
-#endif //POORMANSENGINE_COMMON_H
+#endif //TOCHESS_COMMON_H

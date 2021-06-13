@@ -2,8 +2,8 @@
 // Created by Tayfun Özdoğan on 4.06.2021.
 //
 
-#ifndef POORMANSENGINE_MOVE_H
-#define POORMANSENGINE_MOVE_H
+#ifndef TOCHESS_MOVE_H
+#define TOCHESS_MOVE_H
 
 
 enum class MoveType {
@@ -55,4 +55,4 @@ void displayMove(const Move &move)
               << "-" << (char)('A' + move.getTo() % 8) << (char)('1' + move.getTo() / 8) << "\n";
 }
 
-#endif //POORMANSENGINE_MOVE_H
+#endif //TOCHESS_MOVE_H

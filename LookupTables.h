@@ -2,8 +2,8 @@
 // Created by Tayfun Özdoğan on 4.06.2021.
 //
 
-#ifndef POORMANSENGINE_LOOKUPTABLES_H
-#define POORMANSENGINE_LOOKUPTABLES_H
+#ifndef TOCHESS_LOOKUPTABLES_H
+#define TOCHESS_LOOKUPTABLES_H
 
 #include <array>
 #include <vector>
@@ -497,4 +497,4 @@ namespace LookupTables {
     }
 }
 
-#endif //POORMANSENGINE_LOOKUPTABLES_H
+#endif //TOCHESS_LOOKUPTABLES_H

@@ -2,8 +2,8 @@
 // Created by Tayfun Özdoğan on 4.06.2021.
 //
 
-#ifndef POORMANSENGINE_BOARD_H
-#define POORMANSENGINE_BOARD_H
+#ifndef TOCHESS_BOARD_H
+#define TOCHESS_BOARD_H
 
 #include "common.h"
 #include "Move.h"
@@ -438,4 +438,4 @@ public:
     }
 };
 
-#endif //POORMANSENGINE_BOARD_H
+#endif //TOCHESS_BOARD_H

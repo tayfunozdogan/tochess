@@ -2,8 +2,8 @@
 // Created by Tayfun Özdoğan on 7.06.2021.
 //
 
-#ifndef POORMANSENGINE_GAME_H
-#define POORMANSENGINE_GAME_H
+#ifndef TOCHESS_GAME_H
+#define TOCHESS_GAME_H
 
 #include <iostream>
 #include <algorithm>
@@ -116,4 +116,4 @@ public:
     void setState(GameState t_state) { state = t_state; }
 };
 
-#endif //POORMANSENGINE_GAME_H
+#endif //TOCHESS_GAME_H

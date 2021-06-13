@@ -2,8 +2,8 @@
 // Created by Tayfun Özdoğan on 4.06.2021.
 //
 
-#ifndef POORMANSENGINE_MOVEGENERATOR_H
-#define POORMANSENGINE_MOVEGENERATOR_H
+#ifndef TOCHESS_MOVEGENERATOR_H
+#define TOCHESS_MOVEGENERATOR_H
 
 #include "common.h"
 #include "Move.h"
@@ -410,4 +410,4 @@ public:
         return false;
     }
 };
-#endif //POORMANSENGINE_MOVEGENERATOR_H
+#endif //TOCHESS_MOVEGENERATOR_H
