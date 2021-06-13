@@ -178,7 +178,7 @@ private:     //TODO: whole code must be refactored
             Bitboard possibleEnPassant = LookupTables::NonSlidingAttacks::whitePawnAttacks[from] & ~allPieces;
             while (possibleEnPassant.any()) {
                 const size_t enPassantTo = BitOps::findFirstBit(possibleEnPassant);
-                if (attackableBlackPawnsEnPassant[enPassantTo + 8]) {
+                if (attackableBlackPawnsEnPassant[enPassantTo - 8]) {
                     moveSet.emplace_back(from, enPassantTo, pieceType, MoveType::EN_PASSANT);
                 }
                 possibleEnPassant.reset(enPassantTo);
@@ -247,7 +247,7 @@ private:     //TODO: whole code must be refactored
             Bitboard possibleEnPassant = LookupTables::NonSlidingAttacks::blackPawnAttacks[from] & ~allPieces;
             while (possibleEnPassant.any()) {
                 const size_t enPassantTo = BitOps::findFirstBit(possibleEnPassant);
-                if (attackableWhitePawnsEnPassant[enPassantTo - 8]) {
+                if (attackableWhitePawnsEnPassant[enPassantTo + 8]) {
                     moveSet.emplace_back(from, enPassantTo, pieceType, MoveType::EN_PASSANT);
                 }
                 possibleEnPassant.reset(enPassantTo);

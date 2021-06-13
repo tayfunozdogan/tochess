@@ -16,10 +16,12 @@ enum class GameState {
     WHITE_WIN, BLACK_WIN, INSUFFICIENT_MATERIAL, STALEMATE, ONGOING, FIFTY_REPETITION, THREEFOLD_REPETITION
 };
 
+typedef std::vector<Board> BoardHistory;
+
 class Game {
     Board board;
     GameState state;
-    std::vector<Board> boardHistory;
+    BoardHistory boardHistory;
 
     Game()
     {

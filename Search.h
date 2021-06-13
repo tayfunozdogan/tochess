@@ -159,18 +159,28 @@ public:
             Board board = t_board;
 
             board.makeMove(move);
+
+            //stalemate check
+            MoveGenerator opponentMoveSet;
+            opponentMoveSet.generatePseudoMoveSet(board, board.activePlayer);
+            if (opponentMoveSet.pseudoMoveSet.empty() && (board.activePlayer == Color::WHITE ? board.whiteKing : board.blackKing).any()) {
+                bestMoveSet.clear();
+                bestMoveSet.push_back(move);
+                continue;
+            }
+
             int newScore = -1 * searchTree(board, initScore, -initScore, depth);
 
             if (newScore > bestScore) {
                 bestScore = newScore;
                 bestMoveSet.clear();
                 bestMoveSet.push_back(move);
-                std::cout << "Score : " << bestScore << "\n";
-                displayMoveSet(bestMoveSet);
+//                std::cout << "Score : " << bestScore << "\n";
+//                displayMoveSet(bestMoveSet);
             } else if (newScore == bestScore) {
                 bestMoveSet.push_back(move);
-                std::cout << "Score : " << bestScore << "\n";
-                displayMoveSet(bestMoveSet);
+//                std::cout << "Score : " << bestScore << "\n";
+//                displayMoveSet(bestMoveSet);
             }
         }
 
