@@ -3,4 +3,4 @@ project(tochess)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(tochess main.cpp)
+add_executable(tochess src/main.cpp)
