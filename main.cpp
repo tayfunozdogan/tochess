@@ -3,11 +3,11 @@
 
 //TODO: FEN notation converter
 //TODO: improvements
-//TODO: when stalemate, score should be decreased //it is done i think
+//TODO: when game is stalemate, score should be decreased //it is done i think
 //TODO: GUI
 //TODO: refactor
 //TODO: github
-//TODO:en passant
+//TODO: .h and .cpp files should be split
 
 std::vector<int> nodePerMove;
 
