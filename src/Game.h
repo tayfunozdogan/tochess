@@ -11,6 +11,7 @@
 #include "LookupTables.h"
 #include "MoveGenerator.h"
 #include "Search.h"
+#include "PlayerInput.h"
 
 enum class GameState {
     WHITE_WIN, BLACK_WIN, INSUFFICIENT_MATERIAL, STALEMATE, ONGOING, FIFTY_REPETITION, THREEFOLD_REPETITION
@@ -63,6 +64,58 @@ public:
     {
         LookupTables::init();
         return {};
+    }
+
+    static void startWithPlayer(Game &game, int AILevel, const Color &color)
+    {
+        game.boardHistory.push_back(game.board);
+        game.board.displayBoard();
+        //todo: AI should consider game states on the next moves
+        while (game.getState() == GameState::ONGOING) {
+            if (game.board.halfMoveClock == 100) {
+                game.state = GameState::FIFTY_REPETITION;
+                return;
+            }
+            if (game.isThreefoldRepetition()) {
+                game.state = GameState::THREEFOLD_REPETITION;
+                return;
+            }
+            game.boardHistory.push_back(game.board);
+
+
+            MoveGenerator moveGen;
+            moveGen.generateLegalMoveSet(game.board);
+            displayMoveSet(moveGen.legalMoveSet);
+
+            std::optional<Move> foundMove;
+            if (game.board.activePlayer == color) {
+                foundMove = Input::getMoveFromPlayer(game.board);
+            }
+            else {
+                foundMove = Search::findMove(game.board, AILevel);
+            }
+
+            //detectState
+            if (!foundMove.has_value()) {
+                MoveGenerator opponentMoveSet;
+                opponentMoveSet.generatePseudoMoveSet(game.board, game.board.inactivePlayer);
+                if (!MoveGenerator::isKingInCheckByAnyMove(game.board, opponentMoveSet.pseudoMoveSet, game.board.activePlayer)) {
+                    game.state = GameState::STALEMATE;
+                } else {
+                    game.state = game.board.inactivePlayer == Color::WHITE ? GameState::WHITE_WIN : GameState::BLACK_WIN;
+                }
+                return;
+            } else if (game.board.getAllWhitePieces().count() == 1 && game.board.getAllBlackPieces().count() == 1) {
+                game.state = GameState::INSUFFICIENT_MATERIAL;
+                return;
+            }
+
+            displayMove(foundMove.value());
+            std::cout << "\n-------------------------------------------------------------------------------------------\n";
+
+            game.board.makeMove(foundMove.value()); //active player has changed
+            game.board.displayBoard();
+        }
     }
 
     static void start(Game &game, int AILevel)

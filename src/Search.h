@@ -15,14 +15,6 @@
 
 constexpr int initScore = -100000;
 
-std::optional<Move> findMove(const Board &board, const MoveSet &moveSet)
-{
-    std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
-    std::uniform_int_distribution<int> dis(0, moveSet.size() - 1);
-
-    return moveSet.empty() ? std::nullopt : std::optional<Move>(moveSet[dis(gen)]);
-}
-
 class Search {
 
     static int evaluateBoard(Board board)

@@ -11,8 +11,7 @@
 
 std::vector<int> nodePerMove;
 
-int Perft(Board b, int depth)
-{
+int Perft(Board b, int depth) {
     MoveGenerator mg;
     mg.generateLegalMoveSet(b);
 
@@ -25,9 +24,10 @@ int Perft(Board b, int depth)
         Board tempBoard = b;
         tempBoard.makeMove(move);
         nodes += Perft(tempBoard, depth - 1);
-        if (depth == 5) {
-            std::cout << "Move: " << (char)('A' + move.getFrom() % 8) << (char)('1' + move.getFrom() / 8)
-                      << "-" << (char)('A' + move.getTo() % 8) << (char)('1' + move.getTo() / 8) << ", nodes: " << nodes << "\n";
+        if (depth == 4) {
+            std::cout << "Move: " << (char) ('A' + move.getFrom() % 8) << (char) ('1' + move.getFrom() / 8)
+                      << "-" << (char) ('A' + move.getTo() % 8) << (char) ('1' + move.getTo() / 8) << ", nodes: "
+                      << nodes << "\n";
             nodePerMove.push_back(nodes);
             nodes = 0;
         }
@@ -35,8 +35,7 @@ int Perft(Board b, int depth)
     return nodes;
 }
 
-void PerftAllDepth(int depth)
-{
+void PerftAllDepth(int depth) {
     for (int i = depth - 1; i < depth; i++) {
         auto start = std::chrono::system_clock::now();
         std::cout << "node per move: \n";
@@ -58,13 +57,15 @@ void PerftAllDepth(int depth)
 int main() {
     LookupTables::init();
 
-    //PerftAllDepth(6);
+//    PerftAllDepth(5);
 
     Game game = Game::init();
     auto start = std::chrono::system_clock::now();
 
 
-    Game::start(game, 2);
+    //Game::start(game, 2);
+    Game::startWithPlayer(game, 3, Color::WHITE);
+
     auto end = std::chrono::system_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start) / 1000.f;
     std::cout << "\n\nÖlçüm " << elapsed.count() << " saniye sürdü.. \n";

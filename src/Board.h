@@ -201,7 +201,7 @@ public:
                     else if (move.getMoveType() == MoveType::EN_PASSANT) {
                         whitePawns.reset(from);
                         whitePawns.set(to);
-                        getPieceBitboard(inactivePlayer, capturedPieceType).reset(to + 8);
+                        getPieceBitboard(inactivePlayer, capturedPieceType).reset(to - 8);
                     }
                     halfMoveClock = 0;
                     break;
@@ -325,7 +325,7 @@ public:
                     else if (move.getMoveType() == MoveType::EN_PASSANT) {
                         blackPawns.reset(from);
                         blackPawns.set(to);
-                        getPieceBitboard(inactivePlayer, capturedPieceType).reset(to - 8);
+                        getPieceBitboard(inactivePlayer, capturedPieceType).reset(to + 8);
                     }
                     break;
                 }
@@ -427,12 +427,12 @@ public:
         for (size_t i = g_rankSize; i > 0; --i) {
             std::cout << "\n" << i << "  ";
             for (size_t k = 0; k < g_fileSize; ++k) {
-                std::cout << std::left << std::setw(5) << board[(i - 1) * g_fileSize + k] << " ";
+                std::cout << std::left << "[" << board[(i - 1) * g_fileSize + k] << "] ";
             }
         }
-        std::cout << "\n";
+        std::cout << "\n   ";
         for (char ch = 'a'; ch <= 'h'; ++ch)
-            std::cout << "   " << std::left << std::setw(2) << ch << " ";
+            std::cout << " " << std::left << std::setw(2) << ch << " ";
         std::string activePlayerStr =  activePlayer == Color::WHITE ? "WHITE" : "BLACK";
         std::cout << "\n\nTURN: " + activePlayerStr + "\n\n";
     }

@@ -38,19 +38,19 @@ enum class PieceType {
 std::ostream& operator<< (std::ostream &os, const PieceType &pieceType)
 {
     switch (pieceType) {
-        case PieceType::WHITE_PAWN: os << "wp"; break;
-        case PieceType::WHITE_KNIGHT: os << "WN"; break;
-        case PieceType::WHITE_BISHOP: os << "WB"; break;
-        case PieceType::WHITE_ROOK: os << "WR"; break;
-        case PieceType::WHITE_QUEEN: os << "WQ"; break;
-        case PieceType::WHITE_KING: os << "WK"; break;
-        case PieceType::BLACK_PAWN: os << "bp"; break;
-        case PieceType::BLACK_KNIGHT: os << "BN"; break;
-        case PieceType::BLACK_BISHOP: os << "BB"; break;
-        case PieceType::BLACK_ROOK: os << "BR"; break;
-        case PieceType::BLACK_QUEEN: os << "BQ"; break;
-        case PieceType::BLACK_KING: os << "BK"; break;
-        case PieceType::NONE: os << "O "; break;
+        case PieceType::WHITE_PAWN: os << "\033[32m\u2659\033[0m"; break;
+        case PieceType::WHITE_KNIGHT: os << "\033[32m\u2658\033[0m"; break;
+        case PieceType::WHITE_BISHOP: os << "\033[32m\u2657\033[0m"; break;
+        case PieceType::WHITE_ROOK: os << "\033[32m\u2656\033[0m"; break;
+        case PieceType::WHITE_QUEEN: os << "\033[32m\u2655\033[0m"; break;
+        case PieceType::WHITE_KING: os << "\033[32m\u2654\033[0m"; break;
+        case PieceType::BLACK_PAWN: os << "\033[31m\u265F\033[0m"; break;
+        case PieceType::BLACK_KNIGHT: os << "\033[31m\u265E\033[0m"; break;
+        case PieceType::BLACK_BISHOP: os << "\033[31m\u265D\033[0m"; break;
+        case PieceType::BLACK_ROOK: os << "\033[31m\u265C\033[0m"; break;
+        case PieceType::BLACK_QUEEN: os << "\033[31m\u265B\033[0m"; break;
+        case PieceType::BLACK_KING: os << "\033[31m\u265A\033[0m"; break;
+        case PieceType::NONE: os << " "; break;
     }
 
     return os;
